@@ -81,7 +81,8 @@
       {@const link = byKey.get(st.key)}
       <li
         class="label {s}"
-        style="left:{pct(st.x + 31, W)};top:{pct(st.y - 13, H)};max-width:calc({pct(W - st.x - 33, W)})"
+        class:branch={st.x !== TRUNK}
+        style="left:{pct(st.x + 31, W)};top:{pct(st.x !== TRUNK ? st.y : st.y - 13, H)};max-width:calc({pct(W - st.x - 33, W)})"
       >
         <span class="name">{st.name}</span>
         <span class="state-word">{STATE_WORD[s]}</span>
@@ -204,6 +205,10 @@
     display: flex;
     flex-direction: column;
     line-height: 1.25;
+  }
+  /* Branch labels are narrower and wrap taller, so centre them on their station. */
+  .label.branch {
+    transform: translateY(-50%);
   }
 
   .name {
