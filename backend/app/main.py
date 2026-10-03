@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import mimetypes
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,6 +20,9 @@ from .monitor import Monitor, heartbeat_ping, internet_probe
 from .notify import Notifier
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+# Python's table doesn't know the manifest; browsers want this type for it.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 DEFAULT_UI_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
 
@@ -87,15 +91,19 @@ def ui_directory() -> Path:
 
 
 class UiFiles(StaticFiles):
-    """Vite fingerprints asset names, so they cache forever; index.html never does."""
+    """Vite fingerprints what it puts in assets/, so those cache forever.
+
+    Everything else keeps its name across builds (index.html, the manifest, the icons, the
+    service worker) and must be revalidated, or a phone holds the old one indefinitely.
+    """
 
     def file_response(self, *args, **kwargs):
         response = super().file_response(*args, **kwargs)
-        path = str(args[0]) if args else ""
-        if path.endswith(".html"):
-            response.headers["Cache-Control"] = "no-cache"
-        else:
+        path = Path(str(args[0])) if args else Path()
+        if "assets" in path.parts:
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
         return response
 
 

@@ -38,9 +38,19 @@
     refresh();
     const poll = setInterval(refresh, 10_000);
     const tick = setInterval(() => (now = Date.now()), 1_000);
+    // An installed app comes back from the background showing whatever it last saw.
+    // Fetch straight away rather than show a stale answer for up to ten seconds.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        now = Date.now();
+        refresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       clearInterval(poll);
       clearInterval(tick);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   });
 

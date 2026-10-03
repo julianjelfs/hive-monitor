@@ -43,6 +43,13 @@ On the Pi (`julian_jelfs@pi.local`), in `~/hive-monitor`, as the `hive` systemd 
 127.0.0.1:8030. Caddy serves it as hive.julianjelfs.co.uk (the block lives in the
 recipe-for-disaster repo). Away from home it's at https://pi.tail50bfbf.ts.net:8449.
 
+It installs as an app (Add to Home Screen on iPhone, Install on Android). Install it from
+hive.julianjelfs.co.uk, not the tailnet address: an installed app belongs to one address, so
+installing from both gives two apps.
+
+Icons come from `frontend/scripts/icons.mjs`; run `node scripts/icons.mjs` in `frontend/`
+after changing the drawing.
+
 `scripts/hive` drives it from the laptop: `status`, `setup`, `env`, `rebuild`, `logs`.
 
 The database is backed up nightly at 04:30 to `~/hive-backups`, keeping 14.
