@@ -141,7 +141,7 @@ Flat. Panels are separated by a 1.5px ink border, never by shadow. The only dept
 
 ## Shapes
 
-Panels have 8px corners and chips 4px. Station rings have a radius of 22 units with a 3-unit ink stroke. Track is 9 units wide with round joins.
+Panels have 8px corners and chips 4px. Station rings have a radius of 19.5 units with a 3-unit ink stroke. Track is 9 units wide with round joins.
 
 ## Components
 

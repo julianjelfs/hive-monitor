@@ -68,10 +68,10 @@
     {#each stations as st (st.key)}
       {@const s = stateOf(st.key)}
       {#if st.key === fault}
-        <circle class="pulse" cx={st.x} cy={st.y} r="22" />
+        <circle class="pulse" cx={st.x} cy={st.y} r="19.5" />
       {/if}
-      <circle class="ring {s}" cx={st.x} cy={st.y} r="22" />
-      <use class="glyph {s}" href="#p-{st.icon}" x={st.x - 13} y={st.y - 13} width="26" height="26" />
+      <circle class="ring {s}" cx={st.x} cy={st.y} r="19.5" />
+      <use class="glyph {s}" href="#p-{st.icon}" x={st.x - 11.5} y={st.y - 11.5} width="23" height="23" />
     {/each}
   </svg>
 
@@ -81,7 +81,7 @@
       {@const link = byKey.get(st.key)}
       <li
         class="label {s}"
-        style="left:{pct(st.x + 34, W)};top:{pct(st.y - 13, H)};max-width:calc({pct(W - st.x - 36, W)})"
+        style="left:{pct(st.x + 31, W)};top:{pct(st.y - 13, H)};max-width:calc({pct(W - st.x - 33, W)})"
       >
         <span class="name">{st.name}</span>
         <span class="state-word">{STATE_WORD[s]}</span>
