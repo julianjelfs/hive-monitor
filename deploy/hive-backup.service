@@ -1,0 +1,11 @@
+# One nightly backup run. Driven by hive-backup.timer.
+[Unit]
+Description=Back up the Hive monitor database
+Documentation=https://github.com/julianjelfs/hive-monitor
+
+[Service]
+Type=oneshot
+User=julian_jelfs
+ExecStart=/home/julian_jelfs/hive-monitor/deploy/backup.sh
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Control the Hive monitor, which runs on the Pi. Everything here drives that machine over SSH.
+set -euo pipefail
+
+PI="${HIVE_PI_HOST:-julian_jelfs@pi.local}"
+REMOTE="hive-monitor"
+HOUSE_URL="https://hive.julianjelfs.co.uk"
+# Reachable from outside the house, and from inside it when DNS is being difficult.
+TAILNET_URL="https://pi.tail50bfbf.ts.net:8449"
+ROOT="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+
+on_pi() { ssh -o BatchMode=yes -o ConnectTimeout=10 "$PI" "$@"; }
+
+at_home() { [ -n "$(dig +short A hive.julianjelfs.co.uk 2>/dev/null)" ]; }
+
+url() {
+	if at_home; then echo "$HOUSE_URL"; else echo "$TAILNET_URL"; fi
+}
+
+case "${1:-open}" in
+	open) open "$(url)" ;;
+	url) url ;;
+	ssh) exec ssh "$PI" ;;
+
+	status)
+		on_pi '
+			printf "app       : %s\n" "$(systemctl is-active hive)"
+			printf "caddy     : %s\n" "$(systemctl is-active caddy)"
+			if s=$(curl -sf -m 3 http://127.0.0.1:8030/api/status); then
+				printf "links     : %s\n" "$(echo "$s" | python3 -c "import json,sys; d=json.load(sys.stdin); print(\", \".join(f\"{l[\"key\"]}={l[\"state\"]}\" for l in d[\"links\"]) or \"not checked yet\")")"
+				printf "push      : %s\n" "$(echo "$s" | python3 -c "import json,sys; print(\"on\" if json.load(sys.stdin)[\"push_configured\"] else \"OFF, set NTFY_TOPIC\")")"
+			else
+				printf "api       : NOT responding\n"
+			fi
+			n=$(ls -1 ~/hive-backups/hive-*.db 2>/dev/null | wc -l | tr -d " ")
+			printf "backups   : %s\n" "$n"
+			printf "cpu temp  : %.1fC\n" "$(awk "{print \$1/1000}" /sys/class/thermal/thermal_zone0/temp)"
+			printf "uptime    : %s\n" "$(uptime -p)"
+		'
+		if at_home; then
+			echo "house     : $HOUSE_URL"
+		else
+			echo "house     : $HOUSE_URL (not resolving from here)"
+		fi
+		echo "tailnet   : $TAILNET_URL"
+		;;
+
+	logs)    on_pi "sudo journalctl -u hive -n ${2:-40} -f" ;;
+	start)   on_pi "sudo systemctl start hive"; echo "started" ;;
+	stop)    on_pi "sudo systemctl stop hive"; echo "stopped" ;;
+	restart) on_pi "sudo systemctl restart hive"; echo "restarted" ;;
+
+	setup)
+		# Interactive: Hive texts a code and you type it in. Needs a terminal, so plain ssh -t.
+		ssh -t "$PI" "cd $REMOTE/backend && .venv/bin/python -m app.setup && sudo systemctl restart hive"
+		;;
+
+	env)
+		# Edit the Pi's .env (Hive login, ntfy topic) in place.
+		ssh -t "$PI" "\${EDITOR:-nano} $REMOTE/backend/.env && sudo systemctl restart hive"
+		;;
+
+	rebuild)
+		# The Pi never builds the frontend: Vite stays on the laptop.
+		if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
+			echo "warning: uncommitted changes here; the Pi pulls from GitHub and will not see them" >&2
+		fi
+		echo "==> pulling code on the Pi"
+		on_pi "cd $REMOTE && git pull -q && git log --oneline -1"
+		echo "==> syncing backend dependencies"
+		on_pi "cd $REMOTE/backend && ~/.local/bin/uv sync -q --no-dev && echo ok"
+		echo "==> building the frontend here"
+		(cd "$ROOT/frontend" && npm install --silent && npm run build >/dev/null)
+		echo "==> copying the build across"
+		rsync -az --delete -e "ssh -o BatchMode=yes" "$ROOT/frontend/dist/" "$PI:$REMOTE/frontend/dist/"
+		echo "==> restarting"
+		on_pi "sudo systemctl restart hive"
+		for _ in $(seq 1 40); do
+			on_pi "curl -sf -m 1 http://127.0.0.1:8030/api/health" >/dev/null 2>&1 && break
+			sleep 0.5
+		done
+		on_pi "curl -sf -m 3 http://127.0.0.1:8030/api/health" >/dev/null \
+			&& echo "done, service healthy. Reload the page." \
+			|| { echo "service did not come back; try: hive logs"; exit 1; }
+		;;
+
+	*)
+		cat <<'USAGE'
+hive: the Hive heating monitor, running on the Pi
+
+  hive              open the status page
+  hive status       app, links, push, backups
+  hive setup        log in to Hive with an SMS code (first run, or when Hive forgets the Pi)
+  hive env          edit the Pi's .env (Hive login, ntfy topic), then restart
+  hive rebuild      after changing code: pull on the Pi, build the UI here, restart
+  hive logs [n]     follow the app log
+  hive url          print the URL
+  hive ssh          shell onto the Pi
+  hive start|stop|restart
+USAGE
+		;;
+esac

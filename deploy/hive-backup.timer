@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly Hive monitor database backup
+
+[Timer]
+# Twenty minutes after the garmin backup, so two SQLite copies never overlap.
+OnCalendar=*-*-* 04:30:00
+# Catch up after a power cut.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Hive monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=julian_jelfs
+WorkingDirectory=/home/julian_jelfs/hive-monitor/backend
+# Hive login and ntfy topic. Optional, so a box without it still starts and says so.
+EnvironmentFile=-/home/julian_jelfs/hive-monitor/backend/.env
+# Straight at the venv: `uv run` re-resolves on every start, 12s on a Pi 4.
+ExecStart=/home/julian_jelfs/hive-monitor/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8030
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
