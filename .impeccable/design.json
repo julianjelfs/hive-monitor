@@ -169,7 +169,7 @@
    "name": "Line map segment",
    "kind": "custom",
    "description": "Working track into a station, then a closed (hollow) section into the fault station.",
-   "html": "<svg class=\"ds-map\" viewBox=\"0 0 120 200\" width=\"120\" height=\"200\"><path d=\"M30 20V100\" stroke=\"#0b6e4f\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#d42b26\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#f7f6f2\" stroke-width=\"3.5\" fill=\"none\"/><circle cx=\"30\" cy=\"20\" r=\"17\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"100\" r=\"17\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"180\" r=\"17\" fill=\"#fff\" stroke=\"#d42b26\" stroke-width=\"4\"/></svg>",
+   "html": "<svg class=\"ds-map\" viewBox=\"0 0 120 200\" width=\"120\" height=\"200\"><path d=\"M30 20V100\" stroke=\"#0b6e4f\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#d42b26\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#f7f6f2\" stroke-width=\"3.5\" fill=\"none\"/><circle cx=\"30\" cy=\"20\" r=\"22\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"100\" r=\"22\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"180\" r=\"22\" fill=\"#fff\" stroke=\"#d42b26\" stroke-width=\"4\"/></svg>",
    "css": ".ds-map{background:#f7f6f2;display:block}"
   },
   {
