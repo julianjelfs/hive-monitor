@@ -1,0 +1,233 @@
+{
+ "schemaVersion": 2,
+ "generatedAt": "2026-10-03T15:47:25.859179+00:00",
+ "title": "Design System: Hive Monitor",
+ "extensions": {
+  "colorMeta": {
+   "ground": {
+    "role": "neutral",
+    "displayName": "Map paper",
+    "tonalRamp": [
+     "#2f2c1d",
+     "#4f4931",
+     "#6f6644",
+     "#8e8357",
+     "#ada37a",
+     "#c5bda0",
+     "#dedac9",
+     "#f5f4ef"
+    ]
+   },
+   "paper": {
+    "role": "neutral",
+    "displayName": "Paper",
+    "tonalRamp": [
+     "#262626",
+     "#404040",
+     "#595959",
+     "#737373",
+     "#949494",
+     "#b2b2b2",
+     "#d4d4d4",
+     "#f2f2f2"
+    ]
+   },
+   "ink": {
+    "role": "neutral",
+    "displayName": "Navy ink",
+    "tonalRamp": [
+     "#131f3a",
+     "#1f3460",
+     "#2c4986",
+     "#395ead",
+     "#5e80ca",
+     "#8ca4d9",
+     "#beccea",
+     "#ecf0f9"
+    ]
+   },
+   "muted": {
+    "role": "neutral",
+    "displayName": "Muted",
+    "tonalRamp": [
+     "#21242b",
+     "#373c48",
+     "#4d5466",
+     "#636c82",
+     "#858ea3",
+     "#a8aebd",
+     "#ced1da",
+     "#f0f2f4"
+    ]
+   },
+   "line": {
+    "role": "primary",
+    "displayName": "Line green",
+    "tonalRamp": [
+     "#074632",
+     "#0c7453",
+     "#10a275",
+     "#15d196",
+     "#3cecb5",
+     "#74f1ca",
+     "#b0f7e1",
+     "#e8fdf6"
+    ]
+   },
+   "risk": {
+    "role": "state",
+    "displayName": "Closure red",
+    "tonalRamp": [
+     "#410d0c",
+     "#6c1613",
+     "#971f1b",
+     "#c32723",
+     "#de4e49",
+     "#e8807d",
+     "#f2b7b5",
+     "#fbeae9"
+    ]
+   },
+   "notice": {
+    "role": "state",
+    "displayName": "Notice amber",
+    "tonalRamp": [
+     "#4c3700",
+     "#805c00",
+     "#b28000",
+     "#e6a500",
+     "#ffc329",
+     "#ffd466",
+     "#ffe7a8",
+     "#fff8e5"
+    ]
+   },
+   "unknown": {
+    "role": "state",
+    "displayName": "Unknown grey",
+    "tonalRamp": [
+     "#292824",
+     "#44423c",
+     "#5f5d54",
+     "#7a776c",
+     "#9b988d",
+     "#b7b5ae",
+     "#d6d5d1",
+     "#f3f3f1"
+    ]
+   }
+  },
+  "typographyMeta": {
+   "title": {
+    "displayName": "Title",
+    "purpose": "The Hive name only."
+   },
+   "row": {
+    "displayName": "Row",
+    "purpose": "Status board row names."
+   },
+   "station": {
+    "displayName": "Station",
+    "purpose": "Station names on the line map."
+   },
+   "detail": {
+    "displayName": "Detail",
+    "purpose": "Device detail and times, muted."
+   }
+  },
+  "shadows": [],
+  "motion": [
+   {
+    "name": "ease-out-expo",
+    "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "purpose": "State colour changes on track and rings (240ms), button presses (160ms)."
+   },
+   {
+    "name": "fault-pulse",
+    "value": "2s cubic-bezier(0.16, 1, 0.3, 1) infinite",
+    "purpose": "The one motion: a ring expanding off the fault station. Static under reduced motion."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "column",
+    "value": "34rem",
+    "purpose": "Single column max width; the layout does not change above it."
+   }
+  ]
+ },
+ "components": [
+  {
+   "name": "Status board row",
+   "kind": "custom",
+   "refersTo": "status-board",
+   "description": "Track symbol, row name and state chip; the household answer.",
+   "html": "<div class=\"ds-board\"><div class=\"ds-row\"><span class=\"ds-name\"><svg width=\"28\" height=\"10\" viewBox=\"0 0 28 10\"><path d=\"M2 5H26\" stroke=\"#d42b26\" stroke-width=\"7\"/><path d=\"M2 5H26\" stroke=\"#fff\" stroke-width=\"2.5\"/></svg>Hot water</span><span class=\"ds-chip ds-risk\">At risk</span></div><div class=\"ds-row\"><span class=\"ds-name\"><svg width=\"28\" height=\"10\" viewBox=\"0 0 28 10\"><path d=\"M2 5H26\" stroke=\"#0b6e4f\" stroke-width=\"7\"/></svg>Thermostat</span><span class=\"ds-chip\">Good service</span></div></div>",
+   "css": ".ds-board{background:#fff;border:1.5px solid #14213d;border-radius:8px;overflow:hidden;font-family:'Cabin Variable',system-ui,sans-serif;color:#14213d}.ds-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}.ds-row+.ds-row{border-top:1px solid #d9d6cd}.ds-name{display:flex;align-items:center;gap:10px;font-size:1.125rem;font-weight:600}.ds-chip{font-size:.875rem;font-weight:700}.ds-risk{background:#d42b26;color:#fff;padding:3px 9px;border-radius:4px}"
+  },
+  {
+   "name": "Line map segment",
+   "kind": "custom",
+   "description": "Working track into a station, then a closed (hollow) section into the fault station.",
+   "html": "<svg class=\"ds-map\" viewBox=\"0 0 120 200\" width=\"120\" height=\"200\"><path d=\"M30 20V100\" stroke=\"#0b6e4f\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#d42b26\" stroke-width=\"9\" fill=\"none\"/><path d=\"M30 100V180\" stroke=\"#f7f6f2\" stroke-width=\"3.5\" fill=\"none\"/><circle cx=\"30\" cy=\"20\" r=\"17\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"100\" r=\"17\" fill=\"#fff\" stroke=\"#14213d\" stroke-width=\"3\"/><circle cx=\"30\" cy=\"180\" r=\"17\" fill=\"#fff\" stroke=\"#d42b26\" stroke-width=\"4\"/></svg>",
+   "css": ".ds-map{background:#f7f6f2;display:block}"
+  },
+  {
+   "name": "Primary button",
+   "kind": "button",
+   "refersTo": "button-primary",
+   "description": "Check now.",
+   "html": "<button class=\"ds-btn\">Check now</button>",
+   "css": ".ds-btn{font:700 1rem 'Cabin Variable',system-ui,sans-serif;min-height:44px;padding:10px 18px;border-radius:8px;background:#14213d;color:#f7f6f2;border:1.5px solid #14213d;cursor:pointer;transition:background-color 160ms cubic-bezier(.16,1,.3,1)}.ds-btn:hover{background:#2f3a54}.ds-btn:focus-visible{outline:3px solid #1f5fd1;outline-offset:3px}"
+  },
+  {
+   "name": "Secondary button",
+   "kind": "button",
+   "refersTo": "button-secondary",
+   "description": "Send test alert.",
+   "html": "<button class=\"ds-btn2\">Send test alert</button>",
+   "css": ".ds-btn2{font:700 1rem 'Cabin Variable',system-ui,sans-serif;min-height:44px;padding:10px 18px;border-radius:8px;background:transparent;color:#14213d;border:1.5px solid #d9d6cd;cursor:pointer}.ds-btn2:hover{border-color:#14213d}.ds-btn2:focus-visible{outline:3px solid #1f5fd1;outline-offset:3px}"
+  },
+  {
+   "name": "Try this",
+   "kind": "card",
+   "description": "The approved fix line for the fault.",
+   "html": "<section class=\"ds-try\"><h2>Try this</h2><p>Switch the receiver off at its wall switch by the boiler for 10 seconds, then on.</p></section>",
+   "css": ".ds-try{background:#fff;border:1.5px solid #14213d;border-radius:8px;padding:12px 14px 14px;font-family:'Cabin Variable',system-ui,sans-serif;color:#14213d}.ds-try h2{margin:0 0 4px;font-size:1rem}.ds-try p{margin:0}"
+  }
+ ],
+ "narrative": {
+  "northStar": "The heating system as a railway line",
+  "overview": "Devices are stations, connections are track, and a fault is a closed section drawn hollow. A ruled status board above the map answers the household's question in three plain rows.",
+  "keyCharacteristics": [
+   "Line diagram with 45-degree branches",
+   "Hollow track for a closed section",
+   "Status board with plain state phrases",
+   "One humanist sans (Cabin)",
+   "Warm map paper by day, deep blue-black by night"
+  ],
+  "rules": [
+   {
+    "name": "The Line Rule",
+    "body": "Green is the line. It never appears as decoration or as a button.",
+    "section": "colors"
+   },
+   {
+    "name": "The Not-Colour-Alone Rule",
+    "body": "Every state is carried in line form and in words as well as colour.",
+    "section": "colors"
+   }
+  ],
+  "dos": [
+   "Put the household answer in the board, in plain words, first.",
+   "Draw every state in line form as well as colour.",
+   "Point at the first broken link only."
+  ],
+  "donts": [
+   "Don't use line green for anything but working track.",
+   "Don't add a second animation.",
+   "Don't put coloured stripes on rows or panels.",
+   "Don't reword the Try this lines without asking the household."
+  ]
+ }
+}

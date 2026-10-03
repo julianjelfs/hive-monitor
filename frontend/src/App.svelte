@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { checkNow, getStatus, testPush, type Link, type Status } from './lib/api';
+  import { checkNow, getStatus, testPush, type Status } from './lib/api';
+  import LineMap from './lib/LineMap.svelte';
+  import Pictograms from './lib/Pictograms.svelte';
+  import Track from './lib/Track.svelte';
+  import { STATE_WORD, fixes, rows, worthShowing } from './lib/summary';
 
   let status = $state<Status | null>(null);
   let unreachable = $state(false);
@@ -54,14 +58,16 @@
     };
   });
 
-  const fault = $derived(status?.links.find((l) => l.key === status?.fault) ?? null);
-  const warnings = $derived(status?.links.filter((l) => l.state === 'warn') ?? []);
+  const links = $derived(status?.links ?? []);
+  const board = $derived(rows(links));
+  const tryThis = $derived(fixes(links, status?.fault ?? null));
+  const updates = $derived((status?.events ?? []).filter(worthShowing));
   const stale = $derived(
     status?.checked_at != null && now - Date.parse(status.checked_at) > status.interval * 3_000
   );
 
   function ago(iso: string | null): string {
-    if (!iso) return 'never';
+    if (!iso) return 'not yet';
     const s = Math.max(0, Math.round((now - Date.parse(iso)) / 1000));
     if (s < 60) return `${s}s ago`;
     const m = Math.round(s / 60);
@@ -78,95 +84,90 @@
     return today ? time : `${d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} ${time}`;
   }
 
-  const word: Record<Link['state'], string> = {
-    ok: 'Working',
-    warn: 'Check',
-    down: 'Down',
-    unknown: 'Unknown'
-  };
+  const TONE_OF = { ok: 'good', warn: 'notice', down: 'risk', unknown: 'none' } as const;
 </script>
 
+<Pictograms />
+
 <main>
-  <header>
+  <header class="top">
     <h1>Hive</h1>
     {#if status}
-      <p class="checked" class:late={stale}>Checked {ago(status.checked_at)}</p>
+      <p class="checked" class:late={stale}>
+        Checked {ago(status.checked_at)}
+      </p>
     {/if}
   </header>
 
-  {#if stale && !unreachable}
-    <p class="stalled">The monitor has stopped checking. Alerts won't arrive until it starts again.</p>
-  {/if}
-
   {#if unreachable}
-    <section class="summary down">
-      <h2>Can't reach the monitor</h2>
-      <p>The Pi isn't answering. It may be off, or this device isn't on the home network.</p>
-    </section>
-  {:else if !status || status.links.length === 0}
-    <section class="summary unknown">
-      <h2>Starting up</h2>
-      <p>The first check is on its way.</p>
-    </section>
-  {:else if fault}
-    <section class="summary down">
-      <h2>{fault.label} is down</h2>
-      <p>{fault.detail}</p>
-      {#if fault.since}<p class="small">Since {clock(fault.since)}</p>{/if}
-    </section>
-  {:else if warnings.length}
-    <section class="summary warn">
-      <h2>Working, with {warnings.length === 1 ? 'one thing' : `${warnings.length} things`} to look at</h2>
-      {#each warnings as w}<p>{w.label}: {w.detail}</p>{/each}
+    <section class="board" aria-live="polite">
+      <div class="row">
+        <span class="row-name"><Track tone="risk" />Monitor</span>
+        <span class="chip risk">Not answering</span>
+      </div>
+      <p class="board-note">
+        The Pi isn't answering. It may be off, or this phone isn't on the home network or tailnet.
+      </p>
     </section>
   {:else}
-    <section class="summary ok">
-      <h2>Everything's working</h2>
-      <p>Every link from the Pi to the boiler is up.</p>
+    <section class="board" aria-label="Service status" aria-live="polite">
+      {#each board as row (row.key)}
+        <div class="row">
+          <span class="row-name"><Track tone={row.tone} />{row.label}</span>
+          <span class="chip {row.tone}">{row.word}</span>
+          {#if row.reason}<span class="row-reason">{row.reason}</span>{/if}
+        </div>
+      {/each}
     </section>
   {/if}
 
-  {#if status && status.links.length}
-    <ol class="chain">
-      {#each status.links as link (link.key)}
-        <li class={link.state}>
-          <span class="dot" aria-hidden="true"></span>
-          <div class="body">
-            <div class="row">
-              <span class="label">{link.label}</span>
-              <span class="badge">{word[link.state]}</span>
-            </div>
-            <p class="detail">{link.detail}</p>
-            {#if link.since && (link.state === 'down' || link.state === 'warn')}
-              <p class="small">Since {clock(link.since)}</p>
-            {/if}
-          </div>
-        </li>
+  {#if stale && !unreachable}
+    <p class="stalled" role="alert">The monitor has stopped checking. Alerts won't arrive until it starts again.</p>
+  {/if}
+
+  {#if tryThis.length}
+    <section class="try">
+      <h2>Try this</h2>
+      {#each tryThis as f (f.key)}
+        <p>
+          {#if tryThis.length > 1}<strong>{f.label}.</strong>{/if}
+          {#each f.text.split('`') as part, i}{#if i % 2}<code>{part}</code>{:else}{part}{/if}{/each}
+        </p>
       {/each}
-    </ol>
+    </section>
+  {/if}
+
+  {#if links.length}
+    <LineMap {links} fault={status?.fault ?? null} {clock} />
+    <ul class="key" aria-label="Map key">
+      <li><Track tone="good" />Working</li>
+      <li><Track tone="risk" />Closed</li>
+      <li><Track tone="notice" />Needs a look</li>
+      <li><Track tone="none" />No information</li>
+    </ul>
   {/if}
 
   <div class="actions">
-    <button onclick={onCheck} disabled={checking}>{checking ? 'Checking…' : 'Check now'}</button>
-    <button class="quiet" onclick={onTestPush}>Send test alert</button>
+    <button class="primary" onclick={onCheck} disabled={checking}>{checking ? 'Checking…' : 'Check now'}</button>
+    <button class="secondary" onclick={onTestPush}>Send test alert</button>
   </div>
-  {#if pushNote}<p class="small note">{pushNote}</p>{/if}
+  {#if pushNote}<p class="note" aria-live="polite">{pushNote}</p>{/if}
   {#if status && !status.push_configured}
-    <p class="small note">Alerts are off: NTFY_TOPIC isn't set on the Pi.</p>
+    <p class="note">Alerts are off: NTFY_TOPIC isn't set on the Pi.</p>
   {/if}
 
-  {#if status?.events.length}
-    <section class="history">
-      <h3>Changes</h3>
-      <ul>
-        {#each status.events as e}
+  {#if updates.length}
+    <section class="updates">
+      <h2>Service updates</h2>
+      <ol>
+        {#each updates as e}
           <li>
-            <time>{clock(e.at)}</time>
-            <span class="pill {e.new_state}">{word[e.new_state]}</span>
-            <span>{e.label}{#if e.alert}<span class="alerted">&nbsp;· alerted</span>{/if}</span>
+            <time datetime={e.at}>{clock(e.at)}</time>
+            <span class="update-name">{e.label}</span>
+            <span class="chip small {TONE_OF[e.new_state]}">{STATE_WORD[e.new_state]}</span>
           </li>
         {/each}
-      </ul>
+      </ol>
     </section>
   {/if}
 </main>

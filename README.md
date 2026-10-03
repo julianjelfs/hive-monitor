@@ -15,6 +15,10 @@ Pi → internet → Hive cloud → hub → boiler receiver → hot water, heatin
 The first red link is the fault. Links behind it show as unknown, because Hive's picture of
 anything behind a dead link is stale. Only the first broken link sends an alert.
 
+## Design
+
+The page draws the system as a line diagram: devices are stations, connections are track, and a fault shows as a closed section. `DESIGN.md` records the system and `PRODUCT.md` who it's for. The "Try this" wording in `frontend/src/lib/summary.ts` was approved by the household; ask before changing it.
+
 ## Alerts
 
 Alerts go through [ntfy](https://ntfy.sh). Install the ntfy app, subscribe to the topic
@@ -58,6 +62,7 @@ The database is backed up nightly at 04:30 to `~/hive-backups`, keeping 14.
 
 ```
 cd backend && uv run pytest
+cd frontend && npm test
 cd frontend && npm run dev     # proxies /api to 127.0.0.1:8030
 cd backend && HIVE_POLL=0 uv run uvicorn app.main:app --port 8030   # API without polling Hive
 ```
@@ -79,3 +84,5 @@ Each has a test that names it.
 11. Hot water switched off shows as a warning. (`test_chain.py::test_invariant_11_*`)
 12. A wall thermostat battery under 20% shows as a warning. (`test_chain.py::test_invariant_12_*`)
 13. The monitor watches the home that has a hub, even when it isn't the account's default, so an invited user's login works. (`test_hive.py::test_invariant_13_*`)
+14. The status board never says "at risk" when all we've lost is the view: the internet or Hive cloud being down reads as "No information". (`frontend/src/lib/summary.test.ts`, "invariant 14")
+15. Only the first broken link gets a "Try this" line; links behind it get none. (`frontend/src/lib/summary.test.ts`, "invariant 15")

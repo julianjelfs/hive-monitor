@@ -85,7 +85,7 @@ def assess(obs: Observation) -> list[Link]:
     for key, label, parent in CHAIN:
         upstream = links.get(parent) if parent else None
         if upstream is not None and upstream.state in (State.DOWN, State.UNKNOWN):
-            links[key] = Link(key, label, State.UNKNOWN, f"Can't see past {upstream.label.lower()}")
+            links[key] = Link(key, label, State.UNKNOWN, f"Can't see past {upstream.label}")
             continue
         state, detail = own[key]
         links[key] = Link(key, label, state, detail)
@@ -180,4 +180,5 @@ def _heating(products: list[dict]) -> tuple[State, str]:
     bits.append(mode)
     if props.get("working") is True:
         bits.append("boiler firing")
-    return State.OK, ", ".join(bits).capitalize() if bits else "Online"
+    text = ", ".join(bits)
+    return State.OK, text[:1].upper() + text[1:]

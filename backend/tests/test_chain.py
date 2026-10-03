@@ -64,3 +64,8 @@ def test_missing_device_is_down():
 def test_offline_detail_names_the_device():
     links = {l.key: l for l in assess(Observation(nodes=nodes(thermostat=False)))}
     assert links["thermostat"].detail == "Offline: Hall thermostat"
+
+
+def test_heating_detail_keeps_the_degree_sign_capital():
+    links = {l.key: l for l in assess(Observation(nodes=nodes()))}
+    assert links["heating"].detail == "19.4°C in the house, target 20.0°C, on schedule"

@@ -1,0 +1,228 @@
+{
+ "title": "Choose the look for Hive Monitor",
+ "question": "Same broken moment in each sketch: the boiler receiver dropped at 07:12. The roll picked road signs. Keep it, take another, or re-roll.",
+ "options": [
+  {
+   "id": "assigned",
+   "label": "Road signs",
+   "kicker": "THE ROLL",
+   "lineage": "Kinneir and Calvert's British road sign system, 1965",
+   "thesis": "The heating system drawn as a road diagram: each device a sign pictogram, each connection a road that visibly closes when it fails.",
+   "palette": [
+    "#1b4f9c",
+    "#00703c",
+    "#ffd200",
+    "#c8102e",
+    "#ffffff",
+    "#111111"
+   ],
+   "materials": [
+    "bold flat pictograms",
+    "Transport-style lettering",
+    "thick route strokes"
+   ],
+   "viewport": "A sign-style verdict panel in plain words ('Hot water: working'), then the chain as a map-type junction sign: thick strokes linking device pictograms, a red closure where it breaks, and a 'Try this' plate under the fault.",
+   "risk": "Without the real Transport face, a lookalike can read as a pastiche of a council sign.",
+   "raised": [
+    {
+     "from": "challenger-laban",
+     "raise": "State lives in the stroke, not only in colour: solid is working, cut is down, dotted is unknown."
+    },
+    {
+     "from": "challenger-crouwel",
+     "raise": "The break is the page's only diagonal: a failed link is one clean cut across its road."
+    },
+    {
+     "from": "challenger-botanical",
+     "raise": "Every device pictogram is drawn on one grid at one scale, so they read as a single sign family."
+    },
+    {
+     "from": "challenger-wallet",
+     "raise": "Nothing disappears when it breaks: the closure is stamped over the link and the drawing stays."
+    }
+   ],
+   "hero": ".impeccable/mocks/decision/roadsigns.png"
+  },
+  {
+   "id": "model-pick",
+   "label": "Tube map",
+   "kicker": "IMPECCABLE\u2019S PICK",
+   "lineage": "Harry Beck's Underground diagram and the line status board",
+   "thesis": "Devices are stations, connections are track, and a fault is a suspended section with the reason posted.",
+   "palette": [
+    "#f7f6f2",
+    "#14213d",
+    "#d9302c",
+    "#0b6e4f",
+    "#f2b705"
+   ],
+   "materials": [
+    "45-degree line diagram",
+    "station ticks and interchange rings",
+    "status board rows"
+   ],
+   "viewport": "A status strip ('Good service' or 'Part suspended'), then one line from Pi to boiler with the thermostat on a branch; a dead section turns to a dashed gap with the closure named beside it.",
+   "risk": "The most familiar move for this brief, and close to TfL's own brand; it has to stay a diagram, not a TfL costume.",
+   "hero": ".impeccable/mocks/decision/tube.png"
+  },
+  {
+   "id": "challenger-splitflap",
+   "label": "Departure board",
+   "verdict": "competitive",
+   "lineage": "station split-flap boards",
+   "thesis": "Each link is a row on the board: on time, delayed or cancelled, flipping when it changes.",
+   "palette": [
+    "#111111",
+    "#f2f2f2",
+    "#ffb000",
+    "#b3261e"
+   ],
+   "materials": [
+    "matte flaps",
+    "condensed white caps",
+    "amber row lamps"
+   ],
+   "viewport": "A black board with seven rows, one per link, each with a plain status word; the broken row drops to dim red.",
+   "case": "Everyone in the house reads a departure board instantly, but rows lose how the devices connect, which is the thing you asked to see.",
+   "risk": "Reads as a list again, the shape you're moving away from.",
+   "hero": ".impeccable/mocks/decision/board.png"
+  },
+  {
+   "id": "challenger-warmapp",
+   "label": "Friendly app cards",
+   "verdict": "competitive",
+   "lineage": "warm consumer phone apps",
+   "thesis": "Soft cards, plain-language labels, one bright colour only where you can press.",
+   "palette": [
+    "#f7f1ea",
+    "#ffffff",
+    "#2f6f4e",
+    "#1f1f1f"
+   ],
+   "materials": [
+    "rounded cards",
+    "humanist sans",
+    "soft press springs"
+   ],
+   "viewport": "One card per device with an illustration and a sentence, stacked in a single column.",
+   "case": "Comfortable for the whole household, but cards don't show the chain or where it breaks.",
+   "risk": "Pleasant and forgettable; closest to Hive's own app.",
+   "hero": "https://impeccable.style/worlds/cards/digital-design-canon-warm-consumer-app-surface-hero.webp"
+  },
+  {
+   "id": "challenger-botanical",
+   "label": "Botanical folio",
+   "verdict": "declined",
+   "lineage": "botanical life-cycle plates",
+   "thesis": "One plant through its seasons at fixed scale.",
+   "palette": [
+    "#f3ead8",
+    "#4f6b3a",
+    "#b3261e",
+    "#2b2b2b"
+   ],
+   "materials": [
+    "engraved plates",
+    "hairline sepia rules"
+   ],
+   "viewport": "Devices as fixed-scale plates along one stem.",
+   "case": "A life cycle doesn't map onto a chain of devices.",
+   "kept": "Fixed scale on one ground: every pictogram drawn on the same grid.",
+   "risk": "Reads as decoration.",
+   "hero": "https://impeccable.style/worlds/cards/editorial-sequence-montage-botanical-folio-season-hero.webp"
+  },
+  {
+   "id": "challenger-wallet",
+   "label": "Airline ticket wallet",
+   "verdict": "declined",
+   "lineage": "jet-age ticket coupons",
+   "thesis": "Each link a coupon; a dead one is stamped VOID.",
+   "palette": [
+    "#1b2a52",
+    "#c8102e",
+    "#fafaf7",
+    "#5b3f8c"
+   ],
+   "materials": [
+    "carbon coupons",
+    "VOID stamp"
+   ],
+   "viewport": "A coupon stack, one leg per link.",
+   "case": "Nobody at home thinks of their boiler as a journey.",
+   "kept": "Nothing disappears, it cancels: the closure is stamped over the link.",
+   "risk": "Novelty.",
+   "hero": "https://impeccable.style/worlds/cards/vernacular-ephemera-jet-age-ticket-wallet-hero.webp"
+  },
+  {
+   "id": "challenger-laban",
+   "label": "Dance notation",
+   "verdict": "declined",
+   "lineage": "Labanotation scores",
+   "thesis": "Shape and fill encode meaning exactly.",
+   "palette": [
+    "#ffffff",
+    "#111111",
+    "#d9d9d9"
+   ],
+   "materials": [
+    "solid, hatched and dotted blocks"
+   ],
+   "viewport": "A centre staff of links.",
+   "case": "Unreadable to the household.",
+   "kept": "State encoded in line form, not colour alone.",
+   "risk": "Obscure.",
+   "hero": "https://impeccable.style/worlds/cards/notation-diagram-systems-labanotation-hero.webp"
+  },
+  {
+   "id": "challenger-crouwel",
+   "label": "Grid type specimen",
+   "verdict": "declined",
+   "lineage": "Wim Crouwel's grid posters",
+   "thesis": "Everything built on a visible grid; one diagonal allowed.",
+   "palette": [
+    "#ffffff",
+    "#1f4fd1",
+    "#111111"
+   ],
+   "materials": [
+    "construction grid",
+    "cell-built letters"
+   ],
+   "viewport": "Devices built from grid cells.",
+   "case": "A typographer's poster, not a household's.",
+   "kept": "One diagonal as the only rebellion: the break is the page's only diagonal.",
+   "risk": "Cold.",
+   "hero": "https://impeccable.style/worlds/cards/crouwel-grid-specimen-hero.webp"
+  }
+ ],
+ "reroll": {
+  "registers": [
+   "safer",
+   "bolder"
+  ]
+ },
+ "buildPath": {
+  "value": "code",
+  "toggle": false
+ },
+ "canon": true,
+ "canonCard": {
+  "label": "The category standard",
+  "thesis": "A smart-home status screen done properly: device rows, status dots, clean type.",
+  "palette": [
+   "#f6f5f2",
+   "#1d1f22",
+   "#1f8a4c",
+   "#c62828"
+  ],
+  "materials": [
+   "system type",
+   "status dots",
+   "device rows"
+  ],
+  "viewport": "Today's page, polished: verdict banner then a list of devices.",
+  "risk": "Indistinguishable from every other smart-home app by design.",
+  "hero": ".impeccable/mocks/decision/canon.png"
+ },
+ "steer": true
+}
