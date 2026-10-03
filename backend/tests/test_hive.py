@@ -106,3 +106,27 @@ async def test_sms_challenge_means_setup_needed(tmp_path, http):
 async def test_no_device_keys_means_setup_needed(tmp_path, http):
     with pytest.raises(HiveNeedsSetup):
         await HiveClient("me@example.com", "pw", Store(tmp_path / "hive.db"), http).fetch()
+
+
+async def test_invariant_13_an_invited_user_watches_the_shared_home(tmp_path):
+    """Invariant 13: the monitor watches the home that has a hub, even when it isn't the account's default."""
+    remember_device(tmp_path / "hive.db")
+    homes = {"homes": [{"id": "own", "name": "Home"}, {"id": "shared", "name": "Family"}]}
+    asked_for = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        home = request.url.params.get("homeId")
+        asked_for.append(home)
+        if home == "shared":
+            return httpx.Response(200, json={**nodes(), "homes": homes})
+        return httpx.Response(200, json={"devices": [], "products": [], "homes": homes})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        client = HiveClient("me@example.com", "pw", Store(tmp_path / "hive.db"), http)
+        first = await client.fetch()
+        second = await client.fetch()
+
+    assert [d["type"] for d in first["devices"]][0] == "hub"
+    assert second["devices"]
+    # Default, then own, then shared on the first poll; straight to shared after that.
+    assert asked_for == [None, "own", "shared", "shared"]

@@ -71,3 +71,4 @@ Each has a test that names it.
 10. Every confirmed state change is logged, except a link starting up healthy. (`test_monitor.py::test_invariant_10_*`)
 11. Hot water switched off shows as a warning. (`test_chain.py::test_invariant_11_*`)
 12. A wall thermostat battery under 20% shows as a warning. (`test_chain.py::test_invariant_12_*`)
+13. The monitor watches the home that has a hub, even when it isn't the account's default, so an invited user's login works. (`test_hive.py::test_invariant_13_*`)

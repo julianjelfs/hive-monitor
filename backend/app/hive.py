@@ -44,20 +44,43 @@ class HiveClient:
         self._id_token: str | None = None
         self._refresh_token: str | None = None
         self._expires_at = 0.0
+        # The home whose devices we watch, once found. None means Hive's default.
+        self._home_id: str | None = None
 
     async def fetch(self) -> dict[str, Any]:
-        token = await self._token()
-        response = await self._get(token)
+        """The nodes of the home with the heating in it.
+
+        An account can see several homes. Someone invited to a Hive home also owns an empty
+        one of their own, and Hive answers with that empty one unless asked for another. So
+        when the answer has no hub, try the account's other homes and keep the one that has.
+        """
+        nodes = await self._fetch_home(self._home_id)
+        if _has_hub(nodes):
+            return nodes
+        for home in (nodes.get("homes") or {}).get("homes") or []:
+            home_id = home.get("id")
+            if not home_id or home_id == self._home_id:
+                continue
+            other = await self._fetch_home(home_id)
+            if _has_hub(other):
+                log.info("watching home %r", home.get("name"))
+                self._home_id = home_id
+                return other
+        return nodes
+
+    async def _fetch_home(self, home_id: str | None) -> dict[str, Any]:
+        url = NODES_URL + (f"&homeId={home_id}" if home_id else "")
+        response = await self._get(url, await self._token())
         if response.status_code == 401:
             # Hive dropped the token early. Log in again once before calling it a failure.
             self._id_token = None
-            response = await self._get(await self._token())
+            response = await self._get(url, await self._token())
         response.raise_for_status()
         return response.json()
 
-    async def _get(self, token: str) -> httpx.Response:
+    async def _get(self, url: str, token: str) -> httpx.Response:
         return await self._http.get(
-            NODES_URL,
+            url,
             headers={"Authorization": token, "Accept": "*/*", "User-Agent": USER_AGENT},
             timeout=20,
         )
@@ -131,3 +154,7 @@ async def register_device(username: str, password: str, store: Store, ask_code) 
     await auth.device_registration("hive-monitor")
     group_key, key, device_password = await auth.get_device_data()
     store.put_json(DEVICE_KEY, {"group_key": group_key, "key": key, "password": device_password})
+
+
+def _has_hub(nodes: dict[str, Any]) -> bool:
+    return any(d.get("type") == "hub" for d in nodes.get("devices") or [])
