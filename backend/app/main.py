@@ -39,6 +39,7 @@ def build_monitor(settings: config.Settings, store: Store, http: httpx.AsyncClie
         confirm_after=settings.confirm_after,
         timezone_name=settings.timezone,
         retention_days=settings.retention_days,
+        notify_activity=settings.notify_activity,
     )
 
 

@@ -19,6 +19,7 @@ class Settings:
     poll: bool
     timezone: str
     retention_days: float
+    notify_activity: frozenset[str]
 
 
 def load() -> Settings:
@@ -38,4 +39,7 @@ def load() -> Settings:
         timezone=env("HIVE_TIMEZONE", "Europe/London"),
         # How long the history keeps state changes, on/off times and readings.
         retention_days=float(env("HIVE_RETENTION_DAYS", "14")),
+        # Links whose every on/off change is pushed to the phone, e.g. "hotwater,heating".
+        # For troubleshooting; empty normally.
+        notify_activity=frozenset(k.strip() for k in env("NOTIFY_ACTIVITY", "").split(",") if k.strip()),
     )

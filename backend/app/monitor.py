@@ -45,6 +45,7 @@ class Monitor:
         clock: Callable[[], datetime] = utcnow,
         timezone_name: str = "Europe/London",
         retention_days: float = 14,
+        notify_activity: frozenset[str] = frozenset(),
     ):
         self._source = source
         self._store = store
@@ -56,6 +57,8 @@ class Monitor:
         # Hive's schedules are in the house's local time.
         self._tz = ZoneInfo(timezone_name)
         self._retention = timedelta(days=retention_days)
+        # Links whose on/off changes are pushed as well as logged. A troubleshooting aid.
+        self._notify_activity = notify_activity
         self._pruned_at: datetime | None = None
         self.tracker = Tracker(confirm_after=confirm_after)
         self.links: list[Link] = []
@@ -101,6 +104,11 @@ class Monitor:
             if link.active is not None and self._active.get(link.key) != link.active:
                 self._store.record_activity(link.key, now, link.active)
                 self._active[link.key] = link.active
+                if link.key in self._notify_activity:
+                    try:
+                        await self.notifier.send(f"Hive: {link.label} {'on' if link.active else 'off'}", link.detail, False)
+                    except Exception as err:  # noqa: BLE001 - a failed push must not stop the loop
+                        log.warning("push failed: %r", err)
 
         self._log_readings(nodes, error, internet, now)
         self._prune(now)

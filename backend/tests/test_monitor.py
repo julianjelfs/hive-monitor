@@ -61,7 +61,7 @@ def store(tmp_path):
     s.close()
 
 
-def make(source, store, phone=None, internet=online, confirm_after=2):
+def make(source, store, phone=None, internet=online, confirm_after=2, notify_activity=frozenset()):
     return Monitor(
         source=source,
         store=store,
@@ -69,6 +69,7 @@ def make(source, store, phone=None, internet=online, confirm_after=2):
         internet=internet,
         confirm_after=confirm_after,
         clock=Clock(),
+        notify_activity=notify_activity,
     )
 
 
@@ -175,6 +176,25 @@ async def test_invariant_17_a_restart_does_not_log_the_same_on_off_again(store):
     await polls(make(Source(nodes(hotwater_on=True)), store), 2)
     await polls(make(Source(nodes(hotwater_on=True)), store), 2)
     assert activity(store, "hotwater") == [True]
+
+
+async def test_notify_activity_pushes_each_on_off_change_for_listed_links_only(store):
+    """NOTIFY_ACTIVITY pushes one message per on/off change of a listed link; unlisted links and restarts send nothing."""
+    off, on = nodes(), nodes(hotwater_on=True, heating_on=True)
+    phone = Phone()
+    await polls(make(Source(off, off, on, on, off), store, phone, notify_activity=frozenset({"hotwater"})), 5)
+    assert [t for t, _, _ in phone.sent] == ["Hive: Hot water off", "Hive: Hot water on", "Hive: Hot water off"]
+    assert all(not urgent for _, _, urgent in phone.sent)
+    restarted = Phone()
+    await polls(make(Source(off), store, restarted, notify_activity=frozenset({"hotwater"})), 2)
+    assert restarted.sent == []
+
+
+async def test_activity_is_not_pushed_by_default(store):
+    """Without NOTIFY_ACTIVITY, on/off changes are logged but never pushed."""
+    phone = Phone()
+    await polls(make(Source(nodes(), nodes(hotwater_on=True)), store, phone), 2)
+    assert phone.sent == []
 
 
 async def test_invariant_18_losing_sight_of_hot_water_does_not_log_it_off(store):

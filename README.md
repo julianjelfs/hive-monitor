@@ -54,6 +54,8 @@ named in the Pi's `backend/.env`, and press "Send test alert" on the status page
 - One alert per outage, and one "back" message when it recovers, with how long it was down.
 - Warnings (hot water switched off, thermostat battery under 20%) show on the page but
   don't notify.
+- For troubleshooting, `NOTIFY_ACTIVITY=hotwater` (or `hotwater,heating`) in the Pi's `.env`
+  pushes every on/off change of those links, quietly. Remove the line and restart to stop.
 
 If the broadband goes down the Pi can't send anything. Set `HEARTBEAT_URL` to a
 [healthchecks.io](https://healthchecks.io) check and it will alert you when the Pi goes quiet.
