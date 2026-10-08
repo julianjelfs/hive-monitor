@@ -48,6 +48,14 @@
     return byKey.get(key)?.state ?? 'unknown';
   }
 
+  // Hot water and heating glow while they're running.
+  function isOn(key: string): boolean {
+    return byKey.get(key)?.active === true;
+  }
+
+  // Every station but the Pi itself is a link with a history to open.
+  const historyOf = (key: string) => (key === 'pi' ? null : `#/history/${key}`);
+
   function detailOf(key: string): string {
     if (key === 'pi') return 'Checking every minute';
     return byKey.get(key)?.detail ?? '';
@@ -58,6 +66,13 @@
 
 <figure class="map" aria-label="How the heating system connects">
   <svg viewBox="0 0 {W} {H}" aria-hidden="true">
+    <defs>
+      <radialGradient id="heat-glow">
+        <stop offset="45%" class="glow-core" />
+        <stop offset="100%" class="glow-edge" />
+      </radialGradient>
+    </defs>
+
     <!-- Draw the track that leads somewhere unknown first, so live track sits on top at the joins. -->
     {#each [...tracks].sort((a, b) => (stateOf(a.key) === 'unknown' ? -1 : 0) - (stateOf(b.key) === 'unknown' ? -1 : 0)) as t (t.key)}
       {@const s = stateOf(t.key)}
@@ -67,11 +82,18 @@
 
     {#each stations as st (st.key)}
       {@const s = stateOf(st.key)}
-      {#if st.key === fault}
-        <circle class="pulse" cx={st.x} cy={st.y} r="19.5" />
-      {/if}
-      <circle class="ring {s}" cx={st.x} cy={st.y} r="19.5" />
-      <use class="glyph {s}" href="#p-{st.icon}" x={st.x - 11.5} y={st.y - 11.5} width="23" height="23" />
+      {@const on = isOn(st.key)}
+      <!-- The label is the link people tab to; this one only widens the tap target. -->
+      <a href={historyOf(st.key)} tabindex="-1">
+        {#if on}
+          <circle class="glow" cx={st.x} cy={st.y} r="36" />
+        {/if}
+        {#if st.key === fault}
+          <circle class="pulse" cx={st.x} cy={st.y} r="19.5" />
+        {/if}
+        <circle class="ring {s}" class:on cx={st.x} cy={st.y} r="19.5" />
+        <use class="glyph {s}" href="#p-{st.icon}" x={st.x - 11.5} y={st.y - 11.5} width="23" height="23" />
+      </a>
     {/each}
   </svg>
 
@@ -79,17 +101,21 @@
     {#each stations as st (st.key)}
       {@const s = stateOf(st.key)}
       {@const link = byKey.get(st.key)}
+      {@const href = historyOf(st.key)}
       <li
         class="label {s}"
         class:branch={st.x !== TRUNK}
         style="left:{pct(st.x + 31, W)};top:{pct(st.x !== TRUNK ? st.y : st.y - 13, H)};max-width:calc({pct(W - st.x - 33, W)})"
       >
-        <span class="name">{st.name}</span>
-        <span class="state-word">{STATE_WORD[s]}</span>
-        <span class="detail">{detailOf(st.key)}</span>
-        {#if link?.since && (s === 'down' || s === 'warn')}
-          <span class="since">Since {clock(link.since)}</span>
-        {/if}
+        <svelte:element this={href ? 'a' : 'div'} class="label-body" {href}>
+          <span class="name">{st.name}{#if href}<span class="more" aria-hidden="true">&nbsp;›</span>{/if}</span>
+          <span class="state-word">{STATE_WORD[s]}</span>
+          {#if isOn(st.key)}<span class="on-now">On now</span>{/if}
+          <span class="detail">{detailOf(st.key)}</span>
+          {#if link?.since && (s === 'down' || s === 'warn')}
+            <span class="since">Since {clock(link.since)}</span>
+          {/if}
+        </svelte:element>
       </li>
     {/each}
   </ol>
@@ -158,6 +184,22 @@
     stroke: var(--unknown);
   }
 
+  /* Running: a warm halo and a warm station, still with an ink ring so state reads as before. */
+  .glow {
+    fill: url(#heat-glow);
+  }
+  .glow-core {
+    stop-color: var(--heat);
+    stop-opacity: 0.55;
+  }
+  .glow-edge {
+    stop-color: var(--heat);
+    stop-opacity: 0;
+  }
+  .ring.on {
+    fill: var(--heat-fill);
+  }
+
   .glyph {
     color: var(--ink);
   }
@@ -202,9 +244,26 @@
 
   .label {
     position: absolute;
+    line-height: 1.25;
+  }
+  .label-body {
     display: flex;
     flex-direction: column;
-    line-height: 1.25;
+    color: inherit;
+    text-decoration: none;
+  }
+  a.label-body:hover .name {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .more {
+    color: var(--muted);
+  }
+
+  .on-now {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--heat-text);
   }
   /* Branch labels are narrower and wrap taller, so centre them on their station. */
   .label.branch {

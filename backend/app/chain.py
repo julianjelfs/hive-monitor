@@ -33,6 +33,9 @@ class Link:
     label: str
     state: State
     detail: str
+    # Hot water and heating only: whether it is running now. None when it has no on/off,
+    # or when we can't see it.
+    active: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -87,8 +90,7 @@ def assess(obs: Observation) -> list[Link]:
         if upstream is not None and upstream.state in (State.DOWN, State.UNKNOWN):
             links[key] = Link(key, label, State.UNKNOWN, f"Can't see past {upstream.label}")
             continue
-        state, detail = own[key]
-        links[key] = Link(key, label, state, detail)
+        links[key] = Link(key, label, *own[key])
     return [links[key] for key, _, _ in CHAIN]
 
 
@@ -139,7 +141,7 @@ def _product(products: list[dict], hive_type: str) -> dict | None:
     return next((p for p in products if p.get("type") == hive_type), None)
 
 
-def _hotwater(products: list[dict]) -> tuple[State, str]:
+def _hotwater(products: list[dict]) -> tuple[State, str] | tuple[State, str, bool]:
     product = _product(products, "hotwater")
     if product is None:
         return State.DOWN, "No hot water control in the Hive account"
@@ -152,15 +154,15 @@ def _hotwater(products: list[dict]) -> tuple[State, str]:
     on_now = state.get("status") == "ON" or props.get("working") is True
     now = "heating water now" if on_now else "not heating right now"
     if mode == "OFF":
-        return State.WARN, "Switched off. No hot water until it's back on schedule."
+        return State.WARN, "Switched off. No hot water until it's back on schedule.", on_now
     if mode == "BOOST":
-        return State.OK, f"Boost, {now}"
+        return State.OK, f"Boost, {now}", on_now
     if mode == "MANUAL":
-        return State.OK, f"Always on, {now}"
-    return State.OK, f"On schedule, {now}"
+        return State.OK, f"Always on, {now}", on_now
+    return State.OK, f"On schedule, {now}", on_now
 
 
-def _heating(products: list[dict]) -> tuple[State, str]:
+def _heating(products: list[dict]) -> tuple[State, str] | tuple[State, str, bool]:
     product = _product(products, "heating")
     if product is None:
         return State.DOWN, "No heating control in the Hive account"
@@ -178,7 +180,8 @@ def _heating(products: list[dict]) -> tuple[State, str]:
         state.get("mode") or "", "mode unknown"
     )
     bits.append(mode)
-    if props.get("working") is True:
+    working = props.get("working") is True
+    if working:
         bits.append("boiler firing")
     text = ", ".join(bits)
-    return State.OK, text[:1].upper() + text[1:]
+    return State.OK, text[:1].upper() + text[1:], working

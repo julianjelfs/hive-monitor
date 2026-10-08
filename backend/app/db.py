@@ -1,4 +1,4 @@
-"""SQLite: the Hive device keys and a log of state changes.
+"""SQLite: the Hive device keys, a log of state changes, and when things switched on and off.
 
 Writes happen on a state change or a login, never per poll, so a quiet week costs the
 SD card almost nothing.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from .tracker import Transition
@@ -33,6 +34,14 @@ CREATE TABLE IF NOT EXISTS event (
     new_state TEXT NOT NULL,
     detail    TEXT NOT NULL,
     alert     TEXT
+);
+
+-- Append-only: one row each time hot water or the heating starts or stops running.
+CREATE TABLE IF NOT EXISTS activity (
+    id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    at     TEXT NOT NULL,
+    link   TEXT NOT NULL,
+    active INTEGER NOT NULL
 );
 """
 
@@ -89,6 +98,42 @@ class Store:
             (limit,),
         ).fetchall()
         return [dict(r) for r in rows]
+
+    def record_activity(self, key: str, at: datetime, active: bool) -> None:
+        with self._conn:
+            self._conn.execute(
+                "INSERT INTO activity (at, link, active) VALUES (?, ?, ?)",
+                (at.isoformat(), key, int(active)),
+            )
+
+    def last_activity(self) -> dict[str, bool]:
+        """Each link's most recent on/off, so a restart doesn't log the same thing again."""
+        rows = self._conn.execute(
+            "SELECT link, active FROM activity WHERE id IN (SELECT MAX(id) FROM activity GROUP BY link)"
+        ).fetchall()
+        return {r["link"]: bool(r["active"]) for r in rows}
+
+    def history(self, key: str, limit: int = 200) -> list[dict]:
+        """One link's state changes and on/off changes together, newest first."""
+        rows = self._conn.execute(
+            "SELECT at, kind, old_state, new_state, detail, alert, active FROM ("
+            "  SELECT id, at, 'state' AS kind, old_state, new_state, detail, alert, NULL AS active"
+            "  FROM event WHERE link = ?"
+            "  UNION ALL"
+            "  SELECT id, at, 'activity', NULL, NULL, NULL, NULL, active"
+            "  FROM activity WHERE link = ?"
+            ") ORDER BY at DESC, kind ASC, id DESC LIMIT ?",
+            (key, key, limit),
+        ).fetchall()
+        entries = []
+        for r in rows:
+            if r["kind"] == "activity":
+                entries.append({"at": r["at"], "kind": "activity", "active": bool(r["active"])})
+            else:
+                entry = dict(r)
+                del entry["active"]
+                entries.append(entry)
+        return entries
 
     def close(self) -> None:
         self._conn.close()

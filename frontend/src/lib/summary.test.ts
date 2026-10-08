@@ -10,6 +10,7 @@ function chain(overrides: Record<string, LinkState> = {}, details: Record<string
     label: key,
     state: overrides[key] ?? 'ok',
     detail: details[key] ?? 'fine',
+    active: null,
     since: null
   }));
 }

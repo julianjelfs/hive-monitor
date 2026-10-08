@@ -19,6 +19,16 @@ anything behind a dead link is stale. Only the first broken link sends an alert.
 
 The page draws the system as a line diagram: devices are stations, connections are track, and a fault shows as a closed section. `DESIGN.md` records the system and `PRODUCT.md` who it's for. The "Try this" wording in `frontend/src/lib/summary.ts` was approved by the household; ask before changing it.
 
+## History
+
+Tap a station on the map to see its history, newest first. Every station logs its state
+changes. Hot water and heating also log each time they come on or go off, read from Hive on
+every poll, and their stations glow orange on the map while they're running. The log keeps
+on/off times only from the day this went in.
+
+When the monitor loses sight of hot water or heating, it writes no on/off. The history shows
+the gap as "No information", and the on or off before it reads "for at least".
+
 ## Alerts
 
 Alerts go through [ntfy](https://ntfy.sh). Install the ntfy app, subscribe to the topic
@@ -86,3 +96,8 @@ Each has a test that names it.
 13. The monitor watches the home that has a hub, even when it isn't the account's default, so an invited user's login works. (`test_hive.py::test_invariant_13_*`)
 14. The status board never says "at risk" when all we've lost is the view: the internet or Hive cloud being down reads as "No information". (`frontend/src/lib/summary.test.ts`, "invariant 14")
 15. Only the first broken link gets a "Try this" line; links behind it get none. (`frontend/src/lib/summary.test.ts`, "invariant 15")
+16. Hot water is on when Hive says it's heating water, and heating is on when the boiler is firing. A link behind a dead one is neither on nor off. (`test_chain.py::test_invariant_16_*`)
+17. Each on/off change writes one row. Polls that see no change write nothing, and nor does a restart. (`test_monitor.py::test_invariant_17_*`)
+18. A link the monitor can't see writes no on/off, so a gap never reads as "off". (`test_monitor.py::test_invariant_18_*`)
+19. A link's history holds its own state and on/off changes, newest first, and no other link's. (`test_api.py::test_invariant_19_*`)
+20. On the history page, each on or off lasts until the next on/off change or until the monitor lost sight of the link, whichever came first. (`frontend/src/lib/history.test.ts`, "invariant 20")

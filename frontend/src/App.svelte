@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { checkNow, getStatus, testPush, type Status } from './lib/api';
+  import History from './lib/History.svelte';
   import LineMap from './lib/LineMap.svelte';
   import Pictograms from './lib/Pictograms.svelte';
   import Track from './lib/Track.svelte';
@@ -11,6 +12,9 @@
   let now = $state(Date.now());
   let checking = $state(false);
   let pushNote = $state('');
+  // A station's history lives at #/history/<link>; anything else is the map.
+  let hash = $state(location.hash);
+  const historyKey = $derived(/^#\/history\/(\w+)$/.exec(hash)?.[1] ?? null);
 
   async function refresh() {
     try {
@@ -51,10 +55,16 @@
       }
     };
     document.addEventListener('visibilitychange', onVisible);
+    const onHash = () => {
+      hash = location.hash;
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('hashchange', onHash);
     return () => {
       clearInterval(poll);
       clearInterval(tick);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('hashchange', onHash);
     };
   });
 
@@ -90,84 +100,90 @@
 <Pictograms />
 
 <main>
-  <header class="top">
-    <h1>Hive</h1>
-    {#if status}
-      <p class="checked" class:late={stale}>
-        Checked {ago(status.checked_at)}
-      </p>
-    {/if}
-  </header>
-
-  {#if unreachable}
-    <section class="board" aria-live="polite">
-      <div class="row">
-        <span class="row-name"><Track tone="risk" />Monitor</span>
-        <span class="chip risk">Not answering</span>
-      </div>
-      <p class="board-note">
-        The Pi isn't answering. It may be off, or this phone isn't on the home network or tailnet.
-      </p>
-    </section>
+  {#if historyKey}
+    {#key historyKey}
+      <History linkKey={historyKey} link={links.find((l) => l.key === historyKey)} {now} />
+    {/key}
   {:else}
-    <section class="board" aria-label="Service status" aria-live="polite">
-      {#each board as row (row.key)}
-        <div class="row">
-          <span class="row-name"><Track tone={row.tone} />{row.label}</span>
-          <span class="chip {row.tone}">{row.word}</span>
-          {#if row.reason}<span class="row-reason">{row.reason}</span>{/if}
-        </div>
-      {/each}
-    </section>
-  {/if}
-
-  {#if stale && !unreachable}
-    <p class="stalled" role="alert">The monitor has stopped checking. Alerts won't arrive until it starts again.</p>
-  {/if}
-
-  {#if tryThis.length}
-    <section class="try">
-      <h2>Try this</h2>
-      {#each tryThis as f (f.key)}
-        <p>
-          {#if tryThis.length > 1}<strong>{f.label}.</strong>{/if}
-          {#each f.text.split('`') as part, i}{#if i % 2}<code>{part}</code>{:else}{part}{/if}{/each}
+    <header class="top">
+      <h1>Hive</h1>
+      {#if status}
+        <p class="checked" class:late={stale}>
+          Checked {ago(status.checked_at)}
         </p>
-      {/each}
-    </section>
-  {/if}
+      {/if}
+    </header>
 
-  {#if links.length}
-    <LineMap {links} fault={status?.fault ?? null} {clock} />
-    <ul class="key" aria-label="Map key">
-      <li><Track tone="good" />Working</li>
-      <li><Track tone="risk" />Closed</li>
-      <li><Track tone="notice" />Needs a look</li>
-      <li><Track tone="none" />No information</li>
-    </ul>
-  {/if}
-
-  <div class="actions">
-    <button class="primary" onclick={onCheck} disabled={checking}>{checking ? 'Checking…' : 'Check now'}</button>
-    <button class="secondary" onclick={onTestPush}>Send test alert</button>
-  </div>
-  {#if pushNote}<p class="note" aria-live="polite">{pushNote}</p>{/if}
-  {#if status && !status.push_configured}
-    <p class="note">Alerts are off: NTFY_TOPIC isn't set on the Pi.</p>
-  {/if}
-
-  {#if updates.length}
-    <section class="updates">
-      <h2>Service updates</h2>
-      <ol>
-        {#each updates as e}
-          <li>
-            <time datetime={e.at}>{clock(e.at)}</time>
-            <span class="update-name">{e.label}</span>
-            <span class="chip small {TONE_OF[e.new_state]}">{STATE_WORD[e.new_state]}</span>
-          </li>
+    {#if unreachable}
+      <section class="board" aria-live="polite">
+        <div class="row">
+          <span class="row-name"><Track tone="risk" />Monitor</span>
+          <span class="chip risk">Not answering</span>
+        </div>
+        <p class="board-note">
+          The Pi isn't answering. It may be off, or this phone isn't on the home network or tailnet.
+        </p>
+      </section>
+    {:else}
+      <section class="board" aria-label="Service status" aria-live="polite">
+        {#each board as row (row.key)}
+          <div class="row">
+            <span class="row-name"><Track tone={row.tone} />{row.label}</span>
+            <span class="chip {row.tone}">{row.word}</span>
+            {#if row.reason}<span class="row-reason">{row.reason}</span>{/if}
+          </div>
         {/each}
-      </ol>
-    </section>
+      </section>
+    {/if}
+
+    {#if stale && !unreachable}
+      <p class="stalled" role="alert">The monitor has stopped checking. Alerts won't arrive until it starts again.</p>
+    {/if}
+
+    {#if tryThis.length}
+      <section class="try">
+        <h2>Try this</h2>
+        {#each tryThis as f (f.key)}
+          <p>
+            {#if tryThis.length > 1}<strong>{f.label}.</strong>{/if}
+            {#each f.text.split('`') as part, i}{#if i % 2}<code>{part}</code>{:else}{part}{/if}{/each}
+          </p>
+        {/each}
+      </section>
+    {/if}
+
+    {#if links.length}
+      <LineMap {links} fault={status?.fault ?? null} {clock} />
+      <ul class="key" aria-label="Map key">
+        <li><Track tone="good" />Working</li>
+        <li><Track tone="risk" />Closed</li>
+        <li><Track tone="notice" />Needs a look</li>
+        <li><Track tone="none" />No information</li>
+      </ul>
+    {/if}
+
+    <div class="actions">
+      <button class="primary" onclick={onCheck} disabled={checking}>{checking ? 'Checking…' : 'Check now'}</button>
+      <button class="secondary" onclick={onTestPush}>Send test alert</button>
+    </div>
+    {#if pushNote}<p class="note" aria-live="polite">{pushNote}</p>{/if}
+    {#if status && !status.push_configured}
+      <p class="note">Alerts are off: NTFY_TOPIC isn't set on the Pi.</p>
+    {/if}
+
+    {#if updates.length}
+      <section class="updates">
+        <h2>Service updates</h2>
+        <ol>
+          {#each updates as e}
+            <li>
+              <time datetime={e.at}>{clock(e.at)}</time>
+              <span class="update-name">{e.label}</span>
+              <span class="chip small {TONE_OF[e.new_state]}">{STATE_WORD[e.new_state]}</span>
+            </li>
+          {/each}
+        </ol>
+      </section>
+    {/if}
   {/if}
 </main>

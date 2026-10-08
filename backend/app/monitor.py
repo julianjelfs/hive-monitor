@@ -52,6 +52,8 @@ class Monitor:
         self.tracker = Tracker(confirm_after=confirm_after)
         self.links: list[Link] = []
         self.checked_at: datetime | None = None
+        # The last on/off written for each link, carried over from before a restart.
+        self._active = store.last_activity()
         self._wake = asyncio.Event()
 
     async def poll_once(self) -> list[Link]:
@@ -82,6 +84,13 @@ class Monitor:
                     await self.notifier.send(title, body, urgent)
                 except Exception as err:  # noqa: BLE001 - a failed push must not stop the loop
                     log.warning("push failed: %r", err)
+
+        # On and off come straight from Hive, so they're logged on the poll that sees them.
+        # A link we can't see has no on/off; that isn't "off", so it writes nothing.
+        for link in links:
+            if link.active is not None and self._active.get(link.key) != link.active:
+                self._store.record_activity(link.key, now, link.active)
+                self._active[link.key] = link.active
 
         self.links, self.checked_at = links, now
 
@@ -117,6 +126,7 @@ class Monitor:
                     "label": link.label,
                     "state": link.state.value,
                     "detail": link.detail,
+                    "active": link.active,
                     "since": _iso(self.tracker.since(link.key)) if confirmed else None,
                 }
             )

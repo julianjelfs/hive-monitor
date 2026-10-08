@@ -10,6 +10,8 @@ def nodes(
     battery: int = 60,
     hotwater_mode: str = "SCHEDULE",
     hotwater_online: bool = True,
+    hotwater_on: bool = False,
+    heating_on: bool = False,
 ) -> dict:
     return {
         "devices": [
@@ -44,13 +46,13 @@ def nodes(
             {
                 "id": "slr-1",
                 "type": "hotwater",
-                "props": {"online": hotwater_online, "working": False},
-                "state": {"name": "Hot Water", "mode": hotwater_mode, "status": "OFF"},
+                "props": {"online": hotwater_online, "working": hotwater_on},
+                "state": {"name": "Hot Water", "mode": hotwater_mode, "status": "ON" if hotwater_on else "OFF"},
             },
             {
                 "id": "slr-1",
                 "type": "heating",
-                "props": {"online": True, "temperature": 19.4, "working": False},
+                "props": {"online": True, "temperature": 19.4, "working": heating_on},
                 "state": {"name": "Heating", "mode": "SCHEDULE", "target": 20},
             },
         ],

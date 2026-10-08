@@ -11,6 +11,9 @@ colors:
   risk: "#d42b26"
   risk-text: "#b8211c"
   notice: "#e0a100"
+  heat: "#f26b1d"
+  heat-fill: "#ffe2cc"
+  heat-text: "#b4500f"
   unknown: "#b4b2aa"
   none-fill: "#e7e5de"
   focus: "#1f5fd1"
@@ -109,6 +112,9 @@ The page is a working tool opened from a push alert, usually on a phone. The boa
 - **Notice amber** (`notice`): a warning, such as hot water switched off or a low battery. Text on amber is always ink.
 - **Unknown grey** (`unknown`): track we can't see past. It always comes with a dash pattern, never as colour alone.
 
+### Activity
+- **Heat orange** (`heat`): hot water or heating running right now. It is a glow round the station and a warm station fill, never track, so it can't be mistaken for a state. `heat-text` is the darker orange for "On now" and "On" in text.
+
 ### Neutral
 - **Map paper** (`ground`): warm off-white page ground. At night it becomes `night-ground`, a deep blue-black.
 - **Paper** (`paper`): the board and notice panels.
@@ -117,7 +123,7 @@ The page is a working tool opened from a push alert, usually on a phone. The boa
 
 ### Named Rules
 - **The Line Rule.** Green is the line. It never appears as decoration, a button or an accent.
-- **The Not-Colour-Alone Rule.** Every state is carried twice: once in line form (solid, hollow, dashed) and once in words.
+- **The Not-Colour-Alone Rule.** Every state is carried twice: once in line form (solid, hollow, dashed) and once in words. Running is carried by the glow and the words "On now".
 
 ## Typography
 
@@ -133,11 +139,11 @@ Cabin, a humanist sans in the Johnston tradition, self-hosted through `@fontsour
 
 ## Layout
 
-A single column, at most 34rem wide, with a 16px gutter and safe-area insets for the installed app. The order is fixed: header, status board, "Try this", map, map key, actions, service updates. The map is an SVG on a 360-unit-wide grid with HTML labels laid over it at the same proportions, so labels wrap and stay real text. Stations sit 80 units apart on the trunk, and branches leave the trunk at 45 degrees from a single junction point.
+A single column, at most 34rem wide, with a 16px gutter and safe-area insets for the installed app. The order is fixed: header, status board, "Try this", map, map key, actions, service updates. Each station opens its history at `#/history/<link>`, a second page in the same column. The map is an SVG on a 360-unit-wide grid with HTML labels laid over it at the same proportions, so labels wrap and stay real text. Stations sit 80 units apart on the trunk, and branches leave the trunk at 45 degrees from a single junction point.
 
 ## Elevation & Depth
 
-Flat. Panels are separated by a 1.5px ink border, never by shadow. The only depth is the fault station's pulse ring.
+Flat. Panels are separated by a 1.5px ink border, never by shadow. The only depth is the fault station's pulse ring and the static heat glow round a running station.
 
 ## Shapes
 
@@ -154,6 +160,9 @@ A 28×10 piece of track: solid green (good), solid amber (notice), hollow red (r
 ### Line map (signature)
 The signature component. Track takes the state of the link it leads into. A closed section is red with a ground-coloured core, so it reads as hollow. Unknown track is grey and dashed. The fault station gets a red ring and one slow pulse, which is static under reduced motion.
 
+### Station history
+A back link, the link's name and what it's doing now, then its changes grouped under "Today", "Yesterday" or the date, newest first. A state change shows its track symbol and state word. An on/off shows "On" in heat text or "Off" in ink, with how long it lasted. A trailing "›" on each map label says the station opens.
+
 ### Try this
 A bordered panel with a "Try this" heading and the approved fix line for the fault, or one line per warning. The wording was approved by the household and lives in `frontend/src/lib/summary.ts`.
 
@@ -169,6 +178,6 @@ Primary is filled ink and secondary is outlined; both are 44px tall with a 1px p
 
 ### Don't:
 - Don't use line green for anything except working track.
-- Don't add a second animation. The fault pulse is the only motion.
+- Don't add a second animation. The fault pulse is the only motion; the heat glow stays still.
 - Don't put coloured stripes on rows or panels; use the track symbol.
 - Don't reword the "Try this" lines without asking the household.

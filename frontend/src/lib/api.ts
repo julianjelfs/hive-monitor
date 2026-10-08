@@ -5,6 +5,8 @@ export interface Link {
   label: string;
   state: LinkState;
   detail: string;
+  // Hot water and heating only: running now. Null when it has no on/off or we can't see it.
+  active: boolean | null;
   since: string | null;
 }
 
@@ -25,6 +27,29 @@ export interface Status {
   fault: string | null;
   push_configured: boolean;
   events: Event[];
+}
+
+export type HistoryEntry =
+  | {
+      at: string;
+      kind: 'state';
+      old_state: LinkState;
+      new_state: LinkState;
+      detail: string;
+      alert: 'down' | 'recovered' | null;
+    }
+  | { at: string; kind: 'activity'; active: boolean };
+
+export interface History {
+  key: string;
+  label: string;
+  entries: HistoryEntry[]; // newest first
+}
+
+export async function getHistory(key: string): Promise<History> {
+  const response = await fetch(`/api/links/${encodeURIComponent(key)}/history`);
+  if (!response.ok) throw new Error(`history ${response.status}`);
+  return response.json();
 }
 
 export async function getStatus(): Promise<Status> {

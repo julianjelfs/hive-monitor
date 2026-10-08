@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
 from . import config
+from .chain import LABELS
 from .db import Store
 from .hive import HiveClient
 from .monitor import Monitor, heartbeat_ping, internet_probe
@@ -68,6 +69,13 @@ def status(request: Request) -> dict:
     snapshot = request.app.state.monitor.snapshot()
     snapshot["events"] = request.app.state.store.recent_events(30)
     return snapshot
+
+
+@app.get("/api/links/{key}/history")
+def history(key: str, request: Request) -> dict:
+    if key not in LABELS:
+        raise HTTPException(404, f"No link called {key!r}")
+    return {"key": key, "label": LABELS[key], "entries": request.app.state.store.history(key)}
 
 
 @app.post("/api/check")

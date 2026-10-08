@@ -2,7 +2,8 @@
 
 /*
  * A line diagram world: warm map paper by day, deep night blue after dark, navy ink,
- * one green for working track, red for closed, amber for a notice, grey for unknown.
+ * one green for working track, red for closed, amber for a notice, grey for unknown,
+ * and a warm orange glow on whatever is running.
  */
 :root {
   --ground: #f7f6f2;
@@ -17,6 +18,9 @@
   --risk-ink: #ffffff;
   --notice: #e0a100;
   --notice-ink: #14213d;
+  --heat: #f26b1d;
+  --heat-fill: #ffe2cc;
+  --heat-text: #b4500f;
   --unknown: #b4b2aa;
   --none-fill: #e7e5de;
   --focus: #1f5fd1;
@@ -37,6 +41,9 @@
     --risk-ink: #1a0503;
     --notice: #f2b705;
     --notice-ink: #14213d;
+    --heat: #ff8a3d;
+    --heat-fill: #4a2614;
+    --heat-text: #ffa060;
     --unknown: #4b5570;
     --none-fill: #222b42;
     --focus: #7aa7ff;
