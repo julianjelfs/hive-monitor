@@ -211,3 +211,36 @@ async def test_invariant_23_a_single_failed_poll_is_logged_and_devices_keep_thei
     ]
     assert [path for link, path, *_ in readings(store, "receiver") if path == "props.online"] == ["props.online"]
     assert all(e["new_state"] != "down" for e in store.recent_events())
+
+
+async def test_invariant_26_history_older_than_retention_goes_but_restarts_stay_quiet(store):
+    """Invariant 26: rows older than the retention period are deleted, except each reading's and each
+    link's newest on/off, so a restart after a quiet fortnight still logs nothing new."""
+    old = T0 - timedelta(days=30)
+    store.record_readings(old, [("hotwater", "state.mode", None, '"SCHEDULE"'), ("heating", "props.temperature", None, "19")])
+    store.record_readings(old + timedelta(hours=1), [("heating", "props.temperature", "19", "19.4")])
+    store.record_activity("hotwater", old, True)
+    store.record_activity("hotwater", old + timedelta(hours=1), False)
+    from app.tracker import Transition
+
+    store.record(Transition("hub", "Hub", State.OK, State.DOWN, old, "Offline", "down"))
+
+    monitor = make(Source(nodes()), store)
+    await polls(monitor, 1)
+
+    assert store.recent_events() == []
+    assert [e["active"] for e in store.history("hotwater") if e["kind"] == "activity"] == [False]
+    kept = {(r["link"], r["path"]): r["new"] for r in store.readings() if r["at"] < T0.isoformat()}
+    assert kept[("hotwater", "state.mode")] == '"SCHEDULE"'
+    assert kept[("heating", "props.temperature")] == "19.4"
+    assert len([r for r in store.readings() if r["path"] == "props.temperature" and r["at"] < T0.isoformat()]) == 1
+    # Nothing that was already known gets logged again.
+    assert not any(r["link"] == "hotwater" and r["path"] == "state.mode" and r["at"] > T0.isoformat() for r in store.readings())
+
+
+async def test_pruning_runs_at_most_once_a_day(store):
+    calls = []
+    real = store.prune
+    store.prune = lambda before: calls.append(before) or real(before)
+    await polls(make(Source(nodes()), store), 5)
+    assert len(calls) == 1

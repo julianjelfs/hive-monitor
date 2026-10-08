@@ -40,6 +40,11 @@ a scheduled "on" with no "On" after it stands out.
 All of it is on each station's history page. `GET /api/readings?limit=N` returns every
 link's readings at once, newest first.
 
+History keeps 14 days (`HIVE_RETENTION_DAYS`). Once a day the monitor deletes older state
+changes, on/off times and readings, but keeps the newest row for each field so a restart
+doesn't log it all again. SQLite reuses the freed space, so the file stops growing at
+about two weeks' worth.
+
 ## Alerts
 
 Alerts go through [ntfy](https://ntfy.sh). Install the ntfy app, subscribe to the topic
@@ -117,3 +122,4 @@ Each has a test that names it.
 23. A single failed poll is logged with its reason, though no link changes state, and devices keep their last readings. (`test_monitor.py::test_invariant_23_*`)
 24. "Schedule says" is the hot water schedule slot in force at the house's local time, carrying over from the day before. (`test_readings.py::test_invariant_24_*`)
 25. One poll's readings show as one history row, and "schedule says" and poll results always get rows of their own. (`frontend/src/lib/history.test.ts`, "invariant 25")
+26. History older than the retention period is deleted, except each reading's and each link's newest on/off, so a restart logs nothing already known. (`test_monitor.py::test_invariant_26_*`)

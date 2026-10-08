@@ -18,6 +18,7 @@ class Settings:
     confirm_after: int
     poll: bool
     timezone: str
+    retention_days: float
 
 
 def load() -> Settings:
@@ -35,4 +36,6 @@ def load() -> Settings:
         poll=env("HIVE_POLL", "1") != "0",
         # Hive's schedules are in local time; this is how the monitor reads them.
         timezone=env("HIVE_TIMEZONE", "Europe/London"),
+        # How long the history keeps state changes, on/off times and readings.
+        retention_days=float(env("HIVE_RETENTION_DAYS", "14")),
     )

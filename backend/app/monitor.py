@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
@@ -44,6 +44,7 @@ class Monitor:
         confirm_after: int = 2,
         clock: Callable[[], datetime] = utcnow,
         timezone_name: str = "Europe/London",
+        retention_days: float = 14,
     ):
         self._source = source
         self._store = store
@@ -54,6 +55,8 @@ class Monitor:
         self._clock = clock
         # Hive's schedules are in the house's local time.
         self._tz = ZoneInfo(timezone_name)
+        self._retention = timedelta(days=retention_days)
+        self._pruned_at: datetime | None = None
         self.tracker = Tracker(confirm_after=confirm_after)
         self.links: list[Link] = []
         self.checked_at: datetime | None = None
@@ -100,6 +103,7 @@ class Monitor:
                 self._active[link.key] = link.active
 
         self._log_readings(nodes, error, internet, now)
+        self._prune(now)
 
         self.links, self.checked_at = links, now
 
@@ -122,6 +126,19 @@ class Monitor:
             return
         # Track every value, logged or not, so a counter is compared with its latest.
         self._readings.update(seen)
+
+    def _prune(self, now: datetime) -> None:
+        """Once a day, and on the first poll, drop history older than the retention period."""
+        if self._pruned_at is not None and now - self._pruned_at < timedelta(days=1):
+            return
+        self._pruned_at = now
+        try:
+            gone = self._store.prune(now - self._retention)
+        except Exception:  # noqa: BLE001 - a failed tidy-up must not lose the poll
+            log.exception("couldn't prune history")
+            return
+        if gone:
+            log.info("pruned %d history rows older than %s days", gone, self._retention.days)
 
     async def run(self) -> None:
         while True:

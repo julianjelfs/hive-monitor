@@ -1,7 +1,7 @@
 """SQLite: the Hive device keys, a log of state changes, and when things switched on and off.
 
 Writes happen on a state change or a login, never per poll, so a quiet week costs the
-SD card almost nothing.
+SD card almost nothing. History older than the retention period is deleted once a day.
 """
 
 from __future__ import annotations
@@ -173,6 +173,26 @@ class Store:
             else:
                 entries.append({k: r[k] for k in ("at", "kind", "old_state", "new_state", "detail", "alert")})
         return entries
+
+    def prune(self, before: datetime) -> int:
+        """Delete history older than `before`. Returns how many rows went.
+
+        Each reading's newest row and each link's newest on/off stay whatever their age:
+        they are what a restart compares against, so dropping them would log everything
+        again as new.
+        """
+        cutoff = before.isoformat()
+        with self._conn:
+            gone = self._conn.execute("DELETE FROM event WHERE at < ?", (cutoff,)).rowcount
+            gone += self._conn.execute(
+                "DELETE FROM activity WHERE at < ? AND id NOT IN (SELECT MAX(id) FROM activity GROUP BY link)",
+                (cutoff,),
+            ).rowcount
+            gone += self._conn.execute(
+                "DELETE FROM reading WHERE at < ? AND id NOT IN (SELECT MAX(id) FROM reading GROUP BY link, path)",
+                (cutoff,),
+            ).rowcount
+        return gone
 
     def close(self) -> None:
         self._conn.close()
