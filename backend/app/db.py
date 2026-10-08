@@ -43,6 +43,17 @@ CREATE TABLE IF NOT EXISTS activity (
     link   TEXT NOT NULL,
     active INTEGER NOT NULL
 );
+
+-- Append-only: one row each time any field Hive reports for a heating device changes,
+-- plus whether each poll worked. The raw evidence behind the states above.
+CREATE TABLE IF NOT EXISTS reading (
+    id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    at    TEXT NOT NULL,
+    link  TEXT NOT NULL,
+    path  TEXT NOT NULL,
+    old   TEXT,
+    new   TEXT NOT NULL
+);
 """
 
 
@@ -113,26 +124,54 @@ class Store:
         ).fetchall()
         return {r["link"]: bool(r["active"]) for r in rows}
 
-    def history(self, key: str, limit: int = 200) -> list[dict]:
-        """One link's state changes and on/off changes together, newest first."""
+    def record_readings(self, at: datetime, rows: list[tuple[str, str, str | None, str]]) -> None:
+        """(link, path, old, new) rows from one poll, in one write."""
+        if not rows:
+            return
+        with self._conn:
+            self._conn.executemany(
+                "INSERT INTO reading (at, link, path, old, new) VALUES (?, ?, ?, ?, ?)",
+                [(at.isoformat(), *row) for row in rows],
+            )
+
+    def last_readings(self) -> dict[tuple[str, str], str]:
+        """The latest value logged for each reading, so a restart doesn't log them all again."""
         rows = self._conn.execute(
-            "SELECT at, kind, old_state, new_state, detail, alert, active FROM ("
-            "  SELECT id, at, 'state' AS kind, old_state, new_state, detail, alert, NULL AS active"
+            "SELECT link, path, new FROM reading WHERE id IN (SELECT MAX(id) FROM reading GROUP BY link, path)"
+        ).fetchall()
+        return {(r["link"], r["path"]): r["new"] for r in rows}
+
+    def readings(self, limit: int = 2000) -> list[dict]:
+        """Every link's readings, newest first, for reading the whole picture at once."""
+        rows = self._conn.execute(
+            "SELECT at, link, path, old, new FROM reading ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def history(self, key: str, limit: int = 500) -> list[dict]:
+        """One link's state changes, on/off changes and readings together, newest first."""
+        rows = self._conn.execute(
+            "SELECT at, kind, old_state, new_state, detail, alert, active, path, old, new FROM ("
+            "  SELECT id, at, 'state' AS kind, old_state, new_state, detail, alert,"
+            "         NULL AS active, NULL AS path, NULL AS old, NULL AS new"
             "  FROM event WHERE link = ?"
             "  UNION ALL"
-            "  SELECT id, at, 'activity', NULL, NULL, NULL, NULL, active"
+            "  SELECT id, at, 'activity', NULL, NULL, NULL, NULL, active, NULL, NULL, NULL"
             "  FROM activity WHERE link = ?"
+            "  UNION ALL"
+            "  SELECT id, at, 'reading', NULL, NULL, NULL, NULL, NULL, path, old, new"
+            "  FROM reading WHERE link = ?"
             ") ORDER BY at DESC, kind ASC, id DESC LIMIT ?",
-            (key, key, limit),
+            (key, key, key, limit),
         ).fetchall()
         entries = []
         for r in rows:
             if r["kind"] == "activity":
                 entries.append({"at": r["at"], "kind": "activity", "active": bool(r["active"])})
+            elif r["kind"] == "reading":
+                entries.append({"at": r["at"], "kind": "reading", "path": r["path"], "old": r["old"], "new": r["new"]})
             else:
-                entry = dict(r)
-                del entry["active"]
-                entries.append(entry)
+                entries.append({k: r[k] for k in ("at", "kind", "old_state", "new_state", "detail", "alert")})
         return entries
 
     def close(self) -> None:

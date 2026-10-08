@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getHistory, type History, type Link } from './api';
-  import { byDay, span, withDurations } from './history';
+  import { byDay, grouped, shown, span, withDurations } from './history';
   import Track from './Track.svelte';
   import { STATE_WORD } from './summary';
 
@@ -9,6 +9,25 @@
 
   let history = $state<History | null>(null);
   let failed = $state(false);
+  // Hive's raw fields are for whoever is digging; remember the choice on this phone.
+  let raw = $state(readRaw());
+
+  function readRaw(): boolean {
+    try {
+      return localStorage.getItem('hive-raw') !== 'off';
+    } catch {
+      return true;
+    }
+  }
+
+  function setRaw(on: boolean) {
+    raw = on;
+    try {
+      localStorage.setItem('hive-raw', on ? 'on' : 'off');
+    } catch {
+      // Private mode or blocked storage: the choice lasts until the page closes.
+    }
+  }
 
   async function load() {
     try {
@@ -32,7 +51,10 @@
 
   // Only hot water and heating have an on/off; the rest log state changes alone.
   const switches = $derived(linkKey === 'hotwater' || linkKey === 'heating');
-  const days = $derived(history ? byDay(withDurations(history.entries, now), now) : []);
+  const rows = $derived(
+    history ? grouped(withDurations(history.entries, now)).filter((r) => raw || r.kind !== 'readings') : []
+  );
+  const days = $derived(byDay(rows, now));
 
   function time(iso: string): string {
     return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -52,6 +74,11 @@
     {link.detail}
   </p>
 {/if}
+
+<label class="raw-toggle">
+  <input type="checkbox" checked={raw} onchange={(e) => setRaw(e.currentTarget.checked)} />
+  Show every field Hive reports
+</label>
 
 {#if failed && !history}
   <p class="note">Couldn't load the history. The Pi may not be answering.</p>
@@ -79,11 +106,42 @@
                         : `for ${span(row.lasted)}`}</span>
                 {/if}
               </span>
-            {:else}
+            {:else if row.kind === 'state'}
               <span class="what">
                 <span class="change"><Track tone={TONE_OF[row.new_state]} />{STATE_WORD[row.new_state]}</span>
                 <span class="lasted">{row.detail}</span>
               </span>
+            {:else if row.kind === 'reading' && row.path === 'schedule says'}
+              <span class="what">
+                <span class="change">Schedule says {row.new === 'true' ? 'on' : 'off'}</span>
+                <span class="lasted">From Hive's schedule for this time of day</span>
+              </span>
+            {:else if row.kind === 'reading'}
+              <span class="what">
+                {#if row.new === '"ok"'}
+                  <span class="change">Reached Hive</span>
+                {:else}
+                  <span class="change failed">A check failed</span>
+                  <span class="lasted">{shown(row.new)}</span>
+                {/if}
+              </span>
+            {:else if row.first}
+              <details class="what readings">
+                <summary>Started recording {row.changes.length} fields</summary>
+                <dl>
+                  {#each row.changes as c (c.path)}
+                    <dt>{c.path}</dt>
+                    <dd>{shown(c.new)}</dd>
+                  {/each}
+                </dl>
+              </details>
+            {:else}
+              <dl class="what readings">
+                {#each row.changes as c (c.path)}
+                  <dt>{c.path}</dt>
+                  <dd>{shown(c.old)} → {shown(c.new)}</dd>
+                {/each}
+              </dl>
             {/if}
           </li>
         {/each}
@@ -161,6 +219,53 @@
     gap: 8px;
     --hollow: var(--ground);
   }
+  .change.failed {
+    color: var(--risk-text);
+  }
+
+  .raw-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .raw-toggle input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ink);
+  }
+
+  /* Hive's raw fields: small and muted, for whoever does the digging. */
+  .readings {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    min-width: 0;
+  }
+  .readings summary {
+    cursor: pointer;
+    min-height: 24px;
+  }
+  dl.readings,
+  .readings dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    margin: 0;
+  }
+  .readings dt {
+    font: 0.75rem/1.5 ui-monospace, 'SF Mono', Menlo, monospace;
+    color: var(--ink);
+  }
+  .readings dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+
   .lasted {
     font-size: 0.875rem;
     color: var(--muted);

@@ -7,9 +7,11 @@ import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 import httpx
 
+from . import readings
 from .chain import Link, Observation, State, assess
 from .db import Store
 from .hive import HiveNeedsSetup
@@ -41,6 +43,7 @@ class Monitor:
         interval: float = 60,
         confirm_after: int = 2,
         clock: Callable[[], datetime] = utcnow,
+        timezone_name: str = "Europe/London",
     ):
         self._source = source
         self._store = store
@@ -49,11 +52,15 @@ class Monitor:
         self._heartbeat = heartbeat
         self._interval = interval
         self._clock = clock
+        # Hive's schedules are in the house's local time.
+        self._tz = ZoneInfo(timezone_name)
         self.tracker = Tracker(confirm_after=confirm_after)
         self.links: list[Link] = []
         self.checked_at: datetime | None = None
         # The last on/off written for each link, carried over from before a restart.
         self._active = store.last_activity()
+        # The latest value seen for every reading, seeded with the last ones logged.
+        self._readings = store.last_readings()
         self._wake = asyncio.Event()
 
     async def poll_once(self) -> list[Link]:
@@ -92,6 +99,8 @@ class Monitor:
                 self._store.record_activity(link.key, now, link.active)
                 self._active[link.key] = link.active
 
+        self._log_readings(nodes, error, internet, now)
+
         self.links, self.checked_at = links, now
 
         if internet and self._heartbeat:
@@ -100,6 +109,19 @@ class Monitor:
             except Exception as err:  # noqa: BLE001
                 log.info("heartbeat failed: %r", err)
         return links
+
+    def _log_readings(self, nodes: dict | None, error: str | None, internet: bool, now: datetime) -> None:
+        """Log every field that changed since the last poll. A failed poll keeps the last values."""
+        seen = {readings.POLL: readings.as_value("ok" if nodes is not None else _why(error, internet))}
+        if nodes is not None:
+            seen.update(readings.flatten(nodes, now.astimezone(self._tz)))
+        try:
+            self._store.record_readings(now, readings.changes(self._readings, seen))
+        except Exception:  # noqa: BLE001 - losing a reading must not lose the poll
+            log.exception("couldn't log readings")
+            return
+        # Track every value, logged or not, so a counter is compared with its latest.
+        self._readings.update(seen)
 
     async def run(self) -> None:
         while True:
@@ -138,6 +160,11 @@ class Monitor:
             "fault": broken.key if broken else None,
             "push_configured": self.notifier.configured,
         }
+
+
+def _why(error: str | None, internet: bool) -> str:
+    reason = error or "No answer from Hive"
+    return reason if internet else f"{reason}; no internet"
 
 
 def _iso(value: datetime | None) -> str | None:

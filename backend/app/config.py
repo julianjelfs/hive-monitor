@@ -17,6 +17,7 @@ class Settings:
     interval: float
     confirm_after: int
     poll: bool
+    timezone: str
 
 
 def load() -> Settings:
@@ -32,4 +33,6 @@ def load() -> Settings:
         confirm_after=int(env("CONFIRM_AFTER", "2")),
         # Off for tests and for working on the UI without hitting Hive.
         poll=env("HIVE_POLL", "1") != "0",
+        # Hive's schedules are in local time; this is how the monitor reads them.
+        timezone=env("HIVE_TIMEZONE", "Europe/London"),
     )

@@ -161,7 +161,7 @@ A 28×10 piece of track: solid green (good), solid amber (notice), hollow red (r
 The signature component. Track takes the state of the link it leads into. A closed section is red with a ground-coloured core, so it reads as hollow. Unknown track is grey and dashed. The fault station gets a red ring and one slow pulse, which is static under reduced motion.
 
 ### Station history
-A back link, the link's name and what it's doing now, then its changes grouped under "Today", "Yesterday" or the date, newest first. A state change shows its track symbol and state word. An on/off shows "On" in heat text or "Off" in ink, with how long it lasted. A trailing "›" on each map label says the station opens.
+A back link, the link's name and what it's doing now, then its changes grouped under "Today", "Yesterday" or the date, newest first. A state change shows its track symbol and state word. An on/off shows "On" in heat text or "Off" in ink, with how long it lasted. A trailing "›" on each map label says the station opens. Hive's raw field changes sit between them in small muted rows, one per poll, with the field name in monospace. A checkbox hides them. "Schedule says" and failed checks always show as rows of their own.
 
 ### Try this
 A bordered panel with a "Try this" heading and the approved fix line for the fault, or one line per warning. The wording was approved by the household and lives in `frontend/src/lib/summary.ts`.

@@ -21,7 +21,7 @@ def test_health_and_status(tmp_path, monkeypatch):
 
 
 def test_invariant_19_a_link_history_is_its_own_changes_newest_first(tmp_path):
-    """Invariant 19: a link's history holds its state and on/off changes, newest first, and no other link's."""
+    """Invariant 19: a link's history holds its state, on/off and reading changes, newest first, and no other link's."""
     from datetime import datetime, timedelta, timezone
 
     from app.chain import State
@@ -37,8 +37,11 @@ def test_invariant_19_a_link_history_is_its_own_changes_newest_first(tmp_path):
     store.record_activity("heating", at(15), True)
     store.record(Transition("hotwater", "Hot water", State.UNKNOWN, State.OK, at(20), "On schedule", None))
     store.record_activity("hotwater", at(20), False)
+    store.record_readings(at(25), [("hotwater", "state.mode", '"SCHEDULE"', '"BOOST"'), ("hub", "props.uptime", "9", "1")])
 
     entries = store.history("hotwater")
+    assert entries[0] == {"at": at(25).isoformat(), "kind": "reading", "path": "state.mode", "old": '"SCHEDULE"', "new": '"BOOST"'}
+    entries = entries[1:]
     assert [(e["at"], e["kind"]) for e in entries] == [
         (at(20).isoformat(), "activity"),
         (at(20).isoformat(), "state"),

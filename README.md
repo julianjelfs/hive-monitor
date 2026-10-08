@@ -29,6 +29,17 @@ on/off times only from the day this went in.
 When the monitor loses sight of hot water or heating, it writes no on/off. The history shows
 the gap as "No information", and the on or off before it reads "for at least".
 
+It also logs every field Hive reports for the hub, receiver, thermostat, hot water and
+heating, whenever one changes: mode, boost, status, "working", schedules, signal, battery,
+and Hive's own `presenceLastChanged` stamp, which catches offline blips between polls. Hub
+uptime is logged only when it drops, so a row means the hub restarted. Each failed poll is
+logged with its reason, even a single one. And "schedule says" records what Hive's own
+schedule wants hot water doing, in house time (`HIVE_TIMEZONE`, default Europe/London), so
+a scheduled "on" with no "On" after it stands out.
+
+All of it is on each station's history page. `GET /api/readings?limit=N` returns every
+link's readings at once, newest first.
+
 ## Alerts
 
 Alerts go through [ntfy](https://ntfy.sh). Install the ntfy app, subscribe to the topic
@@ -99,5 +110,10 @@ Each has a test that names it.
 16. Hot water is on when Hive says it's heating water, and heating is on when the boiler is firing. A link behind a dead one is neither on nor off. (`test_chain.py::test_invariant_16_*`)
 17. Each on/off change writes one row. Polls that see no change write nothing, and nor does a restart. (`test_monitor.py::test_invariant_17_*`)
 18. A link the monitor can't see writes no on/off, so a gap never reads as "off". (`test_monitor.py::test_invariant_18_*`)
-19. A link's history holds its own state and on/off changes, newest first, and no other link's. (`test_api.py::test_invariant_19_*`)
+19. A link's history holds its own state, on/off and reading changes, newest first, and no other link's. (`test_api.py::test_invariant_19_*`)
 20. On the history page, each on or off lasts until the next on/off change or until the monitor lost sight of the link, whichever came first. (`frontend/src/lib/history.test.ts`, "invariant 20")
+21. A change in any field Hive reports for a heating device writes one row. No change, or a restart, writes nothing. (`test_monitor.py::test_invariant_21_*`)
+22. Fields that tick by themselves write nothing: `lastSeen` never, and the hub's uptime only when it falls. (`test_readings.py::test_invariant_22_*`)
+23. A single failed poll is logged with its reason, though no link changes state, and devices keep their last readings. (`test_monitor.py::test_invariant_23_*`)
+24. "Schedule says" is the hot water schedule slot in force at the house's local time, carrying over from the day before. (`test_readings.py::test_invariant_24_*`)
+25. One poll's readings show as one history row, and "schedule says" and poll results always get rows of their own. (`frontend/src/lib/history.test.ts`, "invariant 25")

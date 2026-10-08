@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { HistoryEntry } from './api';
-import { byDay, span, withDurations } from './history';
+import { byDay, grouped, shown, span, withDurations } from './history';
 
 const at = (hhmm: string, day = 8) => `2026-10-0${day}T${hhmm}:00`;
 const MIN = 60_000;
@@ -58,5 +58,51 @@ describe('byDay', () => {
       ['Yesterday', 2],
       [new Date(at('08:00', 5)).toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' }), 1]
     ]);
+  });
+});
+
+const reading = (t: string, path: string, old: string | null, value: string): HistoryEntry => ({
+  at: at(t),
+  kind: 'reading',
+  path,
+  old,
+  new: value
+});
+
+describe('grouped', () => {
+  it('invariant 25: one poll\'s readings are one row, and headline readings stand on their own', () => {
+    const rows = grouped(
+      withDurations(
+        [
+          reading('07:01', 'state.mode', '"SCHEDULE"', '"BOOST"'),
+          reading('07:01', 'state.boost', 'null', '60'),
+          reading('07:01', 'schedule says', 'false', 'true'),
+          on('07:01'),
+          reading('06:00', 'state.status', null, '"OFF"'),
+          reading('06:00', 'props.online', null, 'true')
+        ],
+        Date.parse(at('08:00'))
+      )
+    );
+    expect(rows.map((r) => [r.kind, r.kind === 'readings' ? [r.first, r.changes.map((c) => c.path)] : null])).toEqual([
+      ['readings', [false, ['state.boost', 'state.mode']]],
+      ['reading', null],
+      ['activity', null],
+      ['readings', [true, ['props.online', 'state.status']]]
+    ]);
+  });
+});
+
+describe('shown', () => {
+  it('reads values in words', () => {
+    expect(shown(null)).toBe('not seen');
+    expect(shown('null')).toBe('none');
+    expect(shown('"BOOST"')).toBe('BOOST');
+    expect(shown('60')).toBe('60');
+    expect(shown('[{"start":360,"value":{"status":"ON"}},{"start":450,"value":{"status":"OFF"}}]')).toBe('06:00 on, 07:30 off');
+    expect(shown('[{"start":360,"value":{"target":19.5}}]')).toBe('06:00 19.5°');
+    expect(shown('1790867397751')).toBe(
+      new Date(1790867397751).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    );
   });
 });

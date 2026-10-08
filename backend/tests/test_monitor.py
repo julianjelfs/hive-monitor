@@ -183,3 +183,31 @@ async def test_invariant_18_losing_sight_of_hot_water_does_not_log_it_off(store)
     monitor = make(Source(on, nodes(receiver=False), nodes(receiver=False), OSError("blip"), on), store)
     await polls(monitor, 5)
     assert activity(store, "hotwater") == [True]
+
+
+def readings(store, link=None):
+    return [(r["link"], r["path"], r["old"], r["new"]) for r in reversed(store.readings()) if link in (None, r["link"])]
+
+
+async def test_invariant_21_each_field_change_is_logged_once(store):
+    """Invariant 21: a change in any field Hive reports writes one row; no change, or a restart, writes nothing."""
+    monitor = make(Source(nodes(), nodes(), nodes(hotwater_mode="BOOST"), nodes(hotwater_mode="BOOST")), store)
+    await polls(monitor, 4)
+    baseline = len(store.readings())
+    await polls(make(Source(nodes(hotwater_mode="BOOST")), store), 2)
+    assert len(store.readings()) == baseline
+    mode = [(old, new) for link, path, old, new in readings(store, "hotwater") if path == "state.mode"]
+    assert mode == [(None, '"SCHEDULE"'), ('"SCHEDULE"', '"BOOST"')]
+
+
+async def test_invariant_23_a_single_failed_poll_is_logged_and_devices_keep_their_values(store):
+    """Invariant 23: one failed poll logs why, though no link changes state, and logs no device as gone."""
+    monitor = make(Source(nodes(), OSError("blip"), nodes()), store)
+    await polls(monitor, 3)
+    assert [new for link, path, old, new in readings(store, "hive") if path == "poll"] == [
+        '"ok"',
+        '"Couldn\'t reach Hive (OSError)"',
+        '"ok"',
+    ]
+    assert [path for link, path, *_ in readings(store, "receiver") if path == "props.online"] == ["props.online"]
+    assert all(e["new_state"] != "down" for e in store.recent_events())

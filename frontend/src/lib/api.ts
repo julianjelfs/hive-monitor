@@ -38,7 +38,9 @@ export type HistoryEntry =
       detail: string;
       alert: 'down' | 'recovered' | null;
     }
-  | { at: string; kind: 'activity'; active: boolean };
+  | { at: string; kind: 'activity'; active: boolean }
+  // One field Hive reports, as JSON text. old is null the first time it's seen.
+  | { at: string; kind: 'reading'; path: string; old: string | null; new: string };
 
 export interface History {
   key: string;

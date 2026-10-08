@@ -37,6 +37,7 @@ def build_monitor(settings: config.Settings, store: Store, http: httpx.AsyncClie
         heartbeat=heartbeat_ping(http, settings.heartbeat_url) if settings.heartbeat_url else None,
         interval=settings.interval,
         confirm_after=settings.confirm_after,
+        timezone_name=settings.timezone,
     )
 
 
@@ -76,6 +77,11 @@ def history(key: str, request: Request) -> dict:
     if key not in LABELS:
         raise HTTPException(404, f"No link called {key!r}")
     return {"key": key, "label": LABELS[key], "entries": request.app.state.store.history(key)}
+
+
+@app.get("/api/readings")
+def all_readings(request: Request, limit: int = 2000) -> dict:
+    return {"readings": request.app.state.store.readings(min(limit, 20000))}
 
 
 @app.post("/api/check")

@@ -12,13 +12,20 @@ def nodes(
     hotwater_online: bool = True,
     hotwater_on: bool = False,
     heating_on: bool = False,
+    uptime: int = 1000,
+    hotwater_schedule: dict | None = None,
 ) -> dict:
+    hotwater_state = {"name": "Hot Water", "mode": hotwater_mode, "status": "ON" if hotwater_on else "OFF"}
+    if hotwater_schedule is not None:
+        hotwater_state["schedule"] = hotwater_schedule
     return {
+        "status": "OK",
         "devices": [
             {
                 "id": "hub-1",
                 "type": "hub",
-                "props": {"online": hub, "model": "NANO2", "power": "mains", "signal": 100},
+                "lastSeen": 1791445069250 + uptime,
+                "props": {"online": hub, "model": "NANO2", "power": "mains", "signal": 100, "uptime": uptime},
                 "state": {"name": "Hub"},
             },
             {
@@ -47,7 +54,7 @@ def nodes(
                 "id": "slr-1",
                 "type": "hotwater",
                 "props": {"online": hotwater_online, "working": hotwater_on},
-                "state": {"name": "Hot Water", "mode": hotwater_mode, "status": "ON" if hotwater_on else "OFF"},
+                "state": hotwater_state,
             },
             {
                 "id": "slr-1",
