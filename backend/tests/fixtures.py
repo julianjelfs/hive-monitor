@@ -14,6 +14,7 @@ def nodes(
     heating_on: bool = False,
     uptime: int = 1000,
     hotwater_schedule: dict | None = None,
+    temperature: float = 19.4,
 ) -> dict:
     hotwater_state = {"name": "Hot Water", "mode": hotwater_mode, "status": "ON" if hotwater_on else "OFF"}
     if hotwater_schedule is not None:
@@ -59,7 +60,7 @@ def nodes(
             {
                 "id": "slr-1",
                 "type": "heating",
-                "props": {"online": True, "temperature": 19.4, "working": heating_on},
+                "props": {"online": True, "temperature": temperature, "working": heating_on},
                 "state": {"name": "Heating", "mode": "SCHEDULE", "target": 20},
             },
         ],

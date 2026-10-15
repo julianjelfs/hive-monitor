@@ -264,3 +264,12 @@ async def test_pruning_runs_at_most_once_a_day(store):
     store.prune = lambda before: calls.append(before) or real(before)
     await polls(make(Source(nodes()), store), 5)
     assert len(calls) == 1
+
+
+async def test_invariant_28_a_restart_does_not_reset_the_frozen_temperature_clock(store):
+    """Invariant 28: the temperature's last change is read back from history, so a restart during a
+    freeze still alerts instead of starting the 2 hours again."""
+    store.record_readings(T0 - timedelta(hours=3), [("heating", "props.temperature", None, "19.4")])
+    phone = Phone()
+    await polls(make(Source(nodes(temperature=19.4)), store, phone), 2)
+    assert phone.sent and phone.sent[0][0] == "Hive: Hub to wall thermostat is down"

@@ -17,6 +17,7 @@ from .db import Store
 from .hive import HiveNeedsSetup
 from .notify import Notifier, message_for
 from .tracker import Tracker
+from .watchdog import Watchdog
 
 log = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class Monitor:
         self._active = store.last_activity()
         # The latest value seen for every reading, seeded with the last ones logged.
         self._readings = store.last_readings()
+        self._watchdog = _watchdog(store, self._tz)
         self._wake = asyncio.Event()
 
     async def poll_once(self) -> list[Link]:
@@ -83,8 +85,9 @@ class Monitor:
             log.info("hive fetch failed: %r", err)
 
         internet = True if nodes is not None else await self._internet()
-        links = assess(Observation(nodes=nodes, hive_error=error, internet=internet))
         now = self._clock()
+        links = assess(Observation(nodes=nodes, hive_error=error, internet=internet))
+        links = self._watchdog.check(links, nodes, now)
 
         for t in self.tracker.update(links, now):
             log.info("%s: %s -> %s (%s)", t.key, t.old.value, t.new.value, t.detail)
@@ -185,6 +188,15 @@ class Monitor:
             "fault": broken.key if broken else None,
             "push_configured": self.notifier.configured,
         }
+
+
+def _watchdog(store: Store, tz: ZoneInfo) -> Watchdog:
+    """A watchdog that knows how long the house temperature has been stuck, across restarts."""
+    last = store.last_change("heating", "props.temperature")
+    try:
+        return Watchdog(tz, float(last[0]), last[1]) if last else Watchdog(tz)
+    except ValueError:
+        return Watchdog(tz)
 
 
 def _why(error: str | None, internet: bool) -> str:

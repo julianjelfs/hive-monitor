@@ -43,6 +43,10 @@ export function rows(links: Link[]): Row[] {
       if (key === 'thermostat' && fault.key === 'thermostat') {
         return { key, label, word: 'Offline', tone: 'risk', reason: fault.detail };
       }
+      // A link's own fault says what went wrong, which isn't always "offline".
+      if (fault.key === key) {
+        return { key, label, word: 'At risk', tone: 'risk', reason: fault.detail };
+      }
       return { key, label, word: 'At risk', tone: 'risk', reason: `${deviceName(fault)} is offline` };
     }
     const own = byKey.get(key)!;

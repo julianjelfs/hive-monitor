@@ -141,6 +141,13 @@ class Store:
         ).fetchall()
         return {(r["link"], r["path"]): r["new"] for r in rows}
 
+    def last_change(self, link: str, path: str) -> tuple[str, datetime] | None:
+        """One reading's latest value and when it changed to it."""
+        row = self._conn.execute(
+            "SELECT new, at FROM reading WHERE link = ? AND path = ? ORDER BY id DESC LIMIT 1", (link, path)
+        ).fetchone()
+        return (row["new"], datetime.fromisoformat(row["at"])) if row else None
+
     def readings(self, limit: int = 2000) -> list[dict]:
         """Every link's readings, newest first, for reading the whole picture at once."""
         rows = self._conn.execute(

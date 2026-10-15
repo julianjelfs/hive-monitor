@@ -52,6 +52,11 @@ named in the Pi's `backend/.env`, and press "Send test alert" on the status page
 
 - A link alerts after two bad polls in a row, so about two minutes after it breaks.
 - One alert per outage, and one "back" message when it recovers, with how long it was down.
+- A device can say it's online while the system has stopped working. Two checks catch that
+  and alert like a dropped link. Hot water goes down when Hive says it should be on (schedule,
+  boost or always on) but the boiler hasn't started heating water within 5 minutes; it stays
+  down until the boiler does. The thermostat goes down when the house temperature hasn't
+  changed for 2 hours, which means it isn't getting through to the hub.
 - Warnings (hot water switched off, thermostat battery under 20%) show on the page but
   don't notify.
 - For troubleshooting, `NOTIFY_ACTIVITY=hotwater` (or `hotwater,heating`) in the Pi's `.env`
@@ -125,3 +130,5 @@ Each has a test that names it.
 24. "Schedule says" is the hot water schedule slot in force at the house's local time, carrying over from the day before. (`test_readings.py::test_invariant_24_*`)
 25. One poll's readings show as one history row, and "schedule says" and poll results always get rows of their own. (`frontend/src/lib/history.test.ts`, "invariant 25")
 26. History older than the retention period is deleted, except each reading's and each link's newest on/off, so a restart logs nothing already known. (`test_monitor.py::test_invariant_26_*`)
+27. Hot water that Hive says should be on but that hasn't started heating water within 5 minutes is down, and stays down until the boiler is seen heating water. (`test_watchdog.py::test_invariant_27_*`)
+28. A house temperature unchanged for 2 hours puts the thermostat down until it changes, and a restart doesn't reset the clock. (`test_watchdog.py::test_invariant_28_*`, `test_monitor.py::test_invariant_28_*`)
