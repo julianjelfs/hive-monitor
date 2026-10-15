@@ -6,6 +6,7 @@
 
   // The diagram is fixed: the house has one of each device. Coordinates are in a 360-wide
   // viewBox; labels are HTML laid over it at the same proportions so they wrap and stay text.
+  // Positions are in cqw (hundredths of the map's width), so they scale with the drawing.
   const W = 360;
   const H = 684;
   const TRUNK = 36;
@@ -61,7 +62,18 @@
     return byKey.get(key)?.detail ?? '';
   }
 
-  const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+  const cqw = (v: number) => `${(v / W) * 100}cqw`;
+
+  // The station at the end of the line sits at the bottom of the drawing. Its label stays in
+  // the page flow, so however far its detail wraps, the map grows to hold it.
+  const last = stations[stations.length - 1].key;
+
+  function place(st: Station): string {
+    const top = st.x !== TRUNK ? st.y : st.y - 13;
+    const left = `margin-left:${cqw(st.x + 31)};max-width:${cqw(W - st.x - 33)}`;
+    if (st.key === last) return `${left};margin-top:-${cqw(H - top)}`;
+    return `${left};top:${cqw(top)}`;
+  }
 </script>
 
 <figure class="map" aria-label="How the heating system connects">
@@ -105,7 +117,8 @@
       <li
         class="label {s}"
         class:branch={st.x !== TRUNK}
-        style="left:{pct(st.x + 31, W)};top:{pct(st.x !== TRUNK ? st.y : st.y - 13, H)};max-width:calc({pct(W - st.x - 33, W)})"
+        class:last={st.key === last}
+        style={place(st)}
       >
         <svelte:element this={href ? 'a' : 'div'} class="label-body" {href}>
           <span class="name">{st.name}{#if href}<span class="more" aria-hidden="true">&nbsp;›</span>{/if}</span>
@@ -125,14 +138,14 @@
   .map {
     position: relative;
     margin: 26px 0 12px;
-    aspect-ratio: 360 / 684;
+    container-type: inline-size;
   }
 
   svg {
-    position: absolute;
-    inset: 0;
+    display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
+    aspect-ratio: 360 / 684;
     overflow: visible;
   }
 
@@ -244,7 +257,11 @@
 
   .label {
     position: absolute;
+    left: 0;
     line-height: 1.25;
+  }
+  .label.last {
+    position: relative;
   }
   .label-body {
     display: flex;

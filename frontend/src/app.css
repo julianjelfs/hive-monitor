@@ -57,6 +57,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Paints under the home indicator and status bar of the installed app too. */
+  background: var(--ground);
 }
 
 body {
