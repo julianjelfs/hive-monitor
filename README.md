@@ -78,7 +78,10 @@ forgets the Pi, the "Hive cloud" link goes red with a message saying so: run set
 
 On the Pi (`julian_jelfs@pi.local`), in `~/hive-monitor`, as the `hive` systemd service on
 127.0.0.1:8030. Caddy serves it as hive.julianjelfs.co.uk (the block lives in the
-recipe-for-disaster repo). Away from home it's at https://pi.tail50bfbf.ts.net:8449.
+recipe-for-disaster repo). Away from home the same address works on any tailnet device with
+subnet routes on: the Pi advertises its home address, 192.168.68.69, as a Tailscale route.
+https://pi.tail50bfbf.ts.net:8449 still works too. Off both, the installed app still opens
+from its cached page and says it can't reach the monitor, after at most four seconds.
 
 It installs as an app (Add to Home Screen on iPhone, Install on Android). Install it from
 hive.julianjelfs.co.uk, not the tailnet address: an installed app belongs to one address, so

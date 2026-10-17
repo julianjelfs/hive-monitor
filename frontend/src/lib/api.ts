@@ -48,14 +48,20 @@ export interface History {
   entries: HistoryEntry[]; // newest first
 }
 
+// Away from the house and off the tailnet, the Pi's address can hang rather than fail.
+// Give up after this long so the page can say it can't reach the monitor.
+const TIMEOUT_MS = 4000;
+
 export async function getHistory(key: string): Promise<History> {
-  const response = await fetch(`/api/links/${encodeURIComponent(key)}/history`);
+  const response = await fetch(`/api/links/${encodeURIComponent(key)}/history`, {
+    signal: AbortSignal.timeout(TIMEOUT_MS)
+  });
   if (!response.ok) throw new Error(`history ${response.status}`);
   return response.json();
 }
 
 export async function getStatus(): Promise<Status> {
-  const response = await fetch('/api/status');
+  const response = await fetch('/api/status', { signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!response.ok) throw new Error(`status ${response.status}`);
   return response.json();
 }
